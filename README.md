@@ -10,7 +10,7 @@ Tested on Ubuntu 18.04
 Ros Melodic
 
 ### Webots
-Webots is a free and open-source 3D robot simulator.
+Webots is a free and open-source 3D robot simulator.<br />
 Version used: 2021a
 
 #### Installation procedure
