@@ -1,36 +1,39 @@
 #!/usr/bin/env python
 
 import rospy
-from rospy import service
 
 from std_msgs.msg import String
 
 from webots_ros.srv import set_float,get_float
 
-robot = None
+robot_name = None
+left_motor_service = None
+right_motor_service = None
 
 def name_parser(model):
 	"""
 	Identify name of robot.
 	"""
-	global robot
+	global robot_name
 
 	if 'Turtle' in model.data:
-		robot = model.data
-		print('robot: ',robot)
+		robot_name = model.data
+		print('robot: ',robot_name)
 
 def init_navigation():
 	"""
 	Initialize motor position and velocity.
 	"""
-	rospy.wait_for_service(service=robot+'/left_wheel_motor/set_velocity')
+	global left_motor_service, right_motor_service
+	
+	rospy.wait_for_service(service=robot_name+'/left_wheel_motor/set_velocity')
 
 	try:
-		left_motor_service = rospy.ServiceProxy(robot+'/left_wheel_motor/set_velocity',set_float)
-		right_motor_service = rospy.ServiceProxy(robot+'/right_wheel_motor/set_velocity',set_float)
+		left_motor_service = rospy.ServiceProxy(robot_name+'/left_wheel_motor/set_velocity',set_float)
+		right_motor_service = rospy.ServiceProxy(robot_name+'/right_wheel_motor/set_velocity',set_float)
 
-		pos_left_motor = rospy.ServiceProxy(robot+'/left_wheel_motor/set_position',set_float)
-		pos_right_motor = rospy.ServiceProxy(robot+'/right_wheel_motor/set_position',set_float)
+		pos_left_motor = rospy.ServiceProxy(robot_name+'/left_wheel_motor/set_position',set_float)
+		pos_right_motor = rospy.ServiceProxy(robot_name+'/right_wheel_motor/set_position',set_float)
 
 		left_motor_service(float(0))
 		right_motor_service(float(0))
@@ -45,30 +48,24 @@ def robot_navigation(left_vel,right_vel):
 		"""
 		Navigate the robot using given left and right velocities.
 		"""
-		
-		left_motor_service = rospy.ServiceProxy(robot+'/left_wheel_motor/set_velocity',set_float)
-		right_motor_service = rospy.ServiceProxy(robot+'/right_wheel_motor/set_velocity',set_float)
-
 		left_motor_service(float(left_vel))
 		right_motor_service(float(right_vel))
 
 def main():
 	rospy.init_node('main',anonymous=True)
-	robot_name = rospy.Subscriber('/model_name', String, name_parser)
+	rospy.Subscriber('/model_name', String, name_parser)
 
 	left_velocity = 5
 	right_velocity = 5
 
 	while True:
-		if robot != None:
+		if robot_name != None:
 			init_navigation()
 			print('Initialised navigation')
 			break
 	
 	while not rospy.is_shutdown():
-		if robot != None:
-			robot_navigation(left_velocity,right_velocity)
-			#pass
+		robot_navigation(left_velocity,right_velocity)
 
 if __name__ == '__main__':
 	try:
