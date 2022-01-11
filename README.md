@@ -14,7 +14,7 @@ Webots is a free and open-source 3D robot simulator.<br />
 Version used: 2021a
 
 #### Installation procedure
-1. Download **webots_2021a_amd64.deb** from [here.](https://github.com/cyberbotics/webots/releases/tag/R2021a)
+1. Download **webots_2021a_amd64.deb** from [here.](https://github.com/cyberbotics/webots/releases/download/R2021a/webots_2021a_amd64.deb)
 2. In the terminal execute  
     ```
     sudo apt install ./webots_2022a_amd64.deb
