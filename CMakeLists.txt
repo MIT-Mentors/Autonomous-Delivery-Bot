@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  webots_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -105,7 +106,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES autonomous-delivery-bot
-#  CATKIN_DEPENDS roscpp rospy std_msgs
+  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
 
@@ -208,6 +209,7 @@ include_directories(
 add_executable(main src/main.cpp)
 target_link_libraries(main ${catkin_LIBRARIES})
 #add_dependencies(talker cpp_tutorials_generate_messages_cpp)
+#add_dependencies(steering_velocity_v1 webots_ros_generate_messages_cpp)
 
 #add_executable(listener src/listener.cpp)
 #target_link_libraries(listener ${catkin_LIBRARIES})
