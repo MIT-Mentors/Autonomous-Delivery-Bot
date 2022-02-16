@@ -16,7 +16,7 @@ def main():
 
 	direction_pub = rospy.Publisher('directions', String, queue_size=10) 
 
-	rate = rospy.Rate(1) # 1Hz
+	rate = rospy.Rate(100) # 1Hz
 	
 	while not rospy.is_shutdown():
 

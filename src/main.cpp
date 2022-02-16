@@ -22,7 +22,7 @@ void callbackNameParser(const std_msgs::String::ConstPtr& model)
 
 void callbackDirections(const std_msgs::String::ConstPtr& input_direction)
 {
-    ROS_INFO("Direction: %s", input_direction->data.c_str());
+    ROS_INFO("Received direction command: %s", input_direction->data.c_str());
     direction = static_cast<std::string>(input_direction->data.c_str());
 
     if (direction.compare("straight") == 0)
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
     //Setting Velocities
 
     
-    ros::Rate loop_rate(1);
+    ros::Rate loop_rate(100); //100 Hz
 
     ros::Subscriber dir_sub = n.subscribe("/directions",1000,callbackDirections);
 

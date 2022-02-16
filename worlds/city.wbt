@@ -595,7 +595,7 @@ GenericTrafficLight {
   startGreen FALSE
   greenTime 10
   redTime 10
-  state "red"
+  state "green"
 }
 CrossRoadsTrafficLight {
   translation 45 0 -45
@@ -1610,7 +1610,7 @@ DEF TurtleBot3Burger Robot {
       }
       endPoint Solid {
         translation 0 0.004 0.081
-        rotation -0.022607622755697377 -0.9991376570964977 -0.0348258175073843 2.508774259501493
+        rotation -0.04891616176516084 0.9714733901416056 -0.23204883400900883 5.419073289036408
         children [
           Shape {
             appearance PBRAppearance {
