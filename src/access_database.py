@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 
-from firebase import firebase
 import rospy
 
+from firebase import firebase
 from std_msgs.msg import String
 
 def get_directions_from_user():
-	firebase_h = firebase.FirebaseApplication('https://autonomous-delivery-bot-default-rtdb.asia-southeast1.firebasedatabase.app', None)
-	result = firebase_h.get('user/dir', None)
-	return result
+	firebase_handle = firebase.FirebaseApplication('https://autonomous-delivery-bot-default-rtdb.asia-southeast1.firebasedatabase.app', None)
+	direction = firebase_handle.get('user/dir', None)
+	return direction
 
 
 def main():

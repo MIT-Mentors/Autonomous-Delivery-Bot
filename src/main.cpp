@@ -7,6 +7,7 @@
 
 std::string robotName{""};
 std::string direction{""};
+
 int flag{0};
 int straightFlag{0};
 
@@ -50,8 +51,7 @@ int main(int argc, char **argv)
 
     ros::Subscriber sub = n.subscribe("/model_name",1000,callbackNameParser);
 
-    while (flag == 0)
-        {ros::spinOnce();}
+    while (flag == 0) {ros::spinOnce();}
 
     //Setting position   
 
@@ -82,10 +82,7 @@ int main(int argc, char **argv)
     double velocity = 0.0;
 
     ros::ServiceClient leftWheelClient = n.serviceClient<webots_ros::set_float>(robotName+"/left_wheel_motor/set_velocity");
-    ros::ServiceClient rightWheelClient = n.serviceClient<webots_ros::set_float>(robotName+"/right_wheel_motor/set_velocity");
-
-
-    
+    ros::ServiceClient rightWheelClient = n.serviceClient<webots_ros::set_float>(robotName+"/right_wheel_motor/set_velocity");  
 
 
     while (ros::ok())
