@@ -4,6 +4,8 @@
 #include "std_msgs/String.h"
 #include <webots_ros/set_float.h>
 
+// std::string ;
+
 int main(int argc, char **argv)
 {
     ros::init(argc,argv,"delivery");
