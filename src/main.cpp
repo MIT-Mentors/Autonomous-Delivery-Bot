@@ -66,8 +66,8 @@ void initNavigation()
 {
     //Setting position   
 
-    double rightPos = 10000.0;
-    double leftPos =  10000.0;
+    double rightPos = INFINITY;
+    double leftPos =  INFINITY;
 
     ros::ServiceClient leftWheelClientPos = nh->serviceClient<webots_ros::set_float>(robotName+"/left_wheel_motor/set_position");
     ros::ServiceClient rightWheelClientPos = nh->serviceClient<webots_ros::set_float>(robotName+"/right_wheel_motor/set_position");
@@ -84,13 +84,10 @@ void initNavigation()
     rightWheelClient = nh->serviceClient<webots_ros::set_float>(robotName+"/right_wheel_motor/set_velocity");
 }
 
-void setVelocity(double velocity)
+void setVelocity(double rightVelocity, double leftVelocity)
 {
-    double left_velocity = velocity;
-    double right_velocity = velocity;
-
-    leftWheelSrv.request.value = left_velocity;
-    rightWheelSrv.request.value = right_velocity;
+    rightWheelSrv.request.value = rightVelocity;
+    leftWheelSrv.request.value = leftVelocity;
 
     if (!leftWheelClient.call(leftWheelSrv) || !rightWheelClient.call(rightWheelSrv) || !leftWheelSrv.response.success || !rightWheelSrv.response.success)
         {
@@ -99,16 +96,51 @@ void setVelocity(double velocity)
 }
 void navigateToPoint(double setpoint[3])
 {
-    double error = findDistanceBetweenPoints(currLocation, setpoint);
-    double Kp = 1;
+    // double error = findDistanceBetweenPoints(currLocation, setpoint);
+    // double Kp = 1;
 
-    double velocity = Kp*error;
+    // double velocity = Kp*error;
 
-    if (velocity > 20)
-    {
-        velocity = 20;
-    }
-    setVelocity(0.0);
+    // if (velocity > 20)
+    // {
+    //     velocity = 20;
+    // }
+    // setVelocity(0.0);
+
+    double x_component{setpoint[0] - currLocation[0]};
+    double y_component{setpoint[2] - currLocation[2]};
+
+    double phi_ref = atan2(y_component, x_component);
+
+    double phi_error1 = phi_ref-yaw;
+    double phi_error = atan2(sin(phi_error1),cos(phi_error1));
+
+    // Unicycle
+    // double w = 20*phi_error;
+    // double v = 2*(sqrt(x_component*x_component + y_component*y_component));
+
+    double w = 20*phi_error;
+    double v = 2*(sqrt(x_component*x_component + y_component*y_component));
+
+    
+
+    double right_velocity = (2.0*v + w*lengthBtnWheels)/2.0*wheelRadius;
+    double left_velocity = (2.0*v - w*lengthBtnWheels)/2.0*wheelRadius;
+
+    if (right_velocity > maxSpeed)
+        right_velocity = maxSpeed;
+    if (left_velocity > maxSpeed)
+        left_velocity = maxSpeed;
+
+    if (right_velocity < -maxSpeed)
+        right_velocity = -maxSpeed;
+    if (left_velocity < -maxSpeed)
+        left_velocity = -maxSpeed;
+
+    setVelocity(right_velocity, left_velocity);
+    std::cout << phi_error << "          " << phi_ref << "          " << yaw << '\n';
+    std::cout << right_velocity << ' ' << left_velocity << '\n' << '\n';
+
 }
 
 void enableGPS()
@@ -176,7 +208,7 @@ void IMUCallback(const sensor_msgs::Imu::ConstPtr &data)
 
     double pitch = asin(t2);
     double roll = atan2(t3, t4);
-    double yaw = atan2(t1, t0);
+    yaw = atan2(t1, t0);
 
     // yaw = asin(t2);
     // std::cout << pitch << ' ' << roll << ' ' << yaw << '\n';
