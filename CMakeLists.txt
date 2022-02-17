@@ -208,6 +208,10 @@ include_directories(
 
 add_executable(main src/main.cpp)
 target_link_libraries(main ${catkin_LIBRARIES})
+
+add_executable(delivery src/delivery.cpp)
+target_link_libraries(delivery ${catkin_LIBRARIES})
+
 #add_dependencies(talker cpp_tutorials_generate_messages_cpp)
 #add_dependencies(steering_velocity_v1 webots_ros_generate_messages_cpp)
 
