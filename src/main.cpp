@@ -9,6 +9,7 @@
 #include <webots_ros/set_float.h>
 #include <webots_ros/set_int.h>
 #include <geometry_msgs/PointStamped.h>
+#include <sensor_msgs/Imu.h>
 
 
 std::string robotName{""};
@@ -17,6 +18,11 @@ std::string direction{""};
 int flag{0};
 int straightFlag{0};
 int turnFlag{0};
+
+double yaw{0.0};
+double wheelRadius{0.165};
+double lengthBtnWheels{0.8};
+double maxSpeed{20};
 
 double currLocation[3]{};
 double GPSValIntersection[3] = {-43,0.9,44};
@@ -102,7 +108,7 @@ void navigateToPoint(double setpoint[3])
     {
         velocity = 20;
     }
-    setVelocity(velocity);
+    setVelocity(0.0);
 }
 
 void enableGPS()
@@ -114,6 +120,18 @@ void enableGPS()
     if (!gpsClient.call(gpsSrv) || !gpsSrv.response.success)
     {
         std::cout << "Failed to enable GPS\n";
+    }
+}
+
+void enableIMU()
+{
+    ros::ServiceClient imuClient = nh->serviceClient<webots_ros::set_int>(robotName+"/imu/enable");
+    webots_ros::set_int imuSrv;
+    imuSrv.request.value = 1;
+
+    if (!imuClient.call(imuSrv) || !imuSrv.response.success)
+    {
+        std::cout << "Failed to enable IMU\n";
     }
 }
 
@@ -137,6 +155,33 @@ void GPSCallback(const geometry_msgs::PointStamped::ConstPtr &values)
     }
 }
 
+void IMUCallback(const sensor_msgs::Imu::ConstPtr &data)
+{
+    double q_x = data->orientation.x;       // q prefix stands for quaternion
+    double q_y = data->orientation.y;
+    double q_z = data->orientation.z;
+    double q_w = data->orientation.w;
+
+    // Calculating yaw using quaternion values
+
+    double q_z_sqr = q_z * q_z;
+    double t0 = -2.0 * (q_z_sqr + q_w * q_w) + 1.0;
+    double t1 = +2.0 * (q_y * q_z + q_x * q_w);
+    double t2 = -2.0 * (q_y * q_w - q_x * q_z);
+    double t3 = +2.0 * (q_z * q_w + q_x * q_y);
+    double t4 = -2.0 * (q_y * q_y + q_z_sqr) + 1.0;
+
+    t2 = t2 > 1.0 ? 1.0 : t2;
+    t2 = t2 < -1.0 ? -1.0 : t2;
+
+    double pitch = asin(t2);
+    double roll = atan2(t3, t4);
+    double yaw = atan2(t1, t0);
+
+    // yaw = asin(t2);
+    // std::cout << pitch << ' ' << roll << ' ' << yaw << '\n';
+}
+
 double getVelocity()
 {
     if (straightFlag)
@@ -144,8 +189,6 @@ double getVelocity()
     else
         return 0.0;
 }
-
-
 
 int main(int argc, char **argv)
 {
@@ -161,9 +204,11 @@ int main(int argc, char **argv)
 
     initNavigation();
     enableGPS();
+    enableIMU();
 
     // Gps
     ros::Subscriber gps_sub = n.subscribe(robotName+"/gps/values",1000,GPSCallback);
+    ros::Subscriber imu_sub = n.subscribe(robotName+"/imu/quaternion", 1000, IMUCallback);
 
     //ros::Subscriber dir_sub = n.subscribe("/directions",1000,callbackDirections);
 
