@@ -69,11 +69,14 @@ void setAvailabilityStatus(std::string status)
 void senderLocationCallback(const std_msgs::String::ConstPtr &name)
 {
     senderLocation = static_cast<std::string>(name->data.c_str());
+    // std::cout << "Sender loc: " << senderLocation << '\n';
 }
 
 void receiverLocationCallback(const std_msgs::String::ConstPtr &name)
 {
     receiverLocation = static_cast<std::string>(name->data.c_str());
+    // std::cout << "Reeceiver loc: " << receiverLocation << '\n';
+
 }
 
 void reachedSetpointCallback(const std_msgs::Bool::ConstPtr &value)
@@ -91,7 +94,7 @@ int main(int argc, char **argv)
     availability_pub = n.advertise<std_msgs::String>("availability",1000);
     ros::Publisher setpoint_pub = n.advertise<geometry_msgs::Vector3>("setpoint",1000);
 
-    // ros::Subscriber senderLocationSub = n.subscribe("sender_location",1000,senderLocationCallback);
+    ros::Subscriber senderLocationSub = n.subscribe("sender_location",1000,senderLocationCallback);
     ros::Subscriber receiverLocationSub = n.subscribe("receiver_location",1000,receiverLocationCallback);
     ros::Subscriber reachedSetpointSub = n.subscribe("reachedSetpointBool",10,reachedSetpointCallback);
 
@@ -103,6 +106,7 @@ int main(int argc, char **argv)
 
     while (ros::ok())
     {
+        std::cout << "reachedSetpointBool: " << reachedSetpointBool << '\n';
 
         if (senderLocation.compare("Location A") == 0)
         {
@@ -130,19 +134,23 @@ int main(int argc, char **argv)
             setAvailabilityStatus("yes");
         }
 
-        std::cout << "Seeting setpoint to " << senderLocation << '\n';
+        std::cout << "Setting setpoint to " << senderLocation << '\n';
         setpoint_pub.publish(setpointsArray);
-        break;
+
+        if (reachedSetpointBool)
+        {
+            break;
+        }
 
         ros::spinOnce();
         loop_rate.sleep();
     }
 
-    while (ros::ok() && !reachedSetpointBool)
-    {
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
+    // while (ros::ok() && !reachedSetpointBool)
+    // {
+    //     ros::spinOnce();
+    //     loop_rate.sleep();
+    // }
 
     while(ros::ok())
     {
@@ -170,7 +178,7 @@ int main(int argc, char **argv)
         std::cout << "Seeting setpoint to " << receiverLocation << '\n';
 
         setpoint_pub.publish(setpointsArray);
-        break;
+        // break;
 
         ros::spinOnce();
         loop_rate.sleep();

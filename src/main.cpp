@@ -158,8 +158,9 @@ void navigateToPoint(double setpoint[3])
     // std::cout << right_velocity << ' ' << left_velocity << '\n' << '\n';
 
     double dist = findDistanceBetweenPoints(currLocation,setpoint);
+    std::cout << "dist: " << dist << '\n';
     
-    if (dist<10)
+    if (dist<5)
     {
         std::cout << "Reached setpoint\n";
         std_msgs::Bool value;
