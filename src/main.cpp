@@ -1,4 +1,5 @@
 #include <cmath>
+#include <cstdlib>
 #include <iostream>
 #include <math.h>
 #include <string>
@@ -130,9 +131,23 @@ void navigateToPoint(double setpoint[3])
 
     double distance{sqrt(x_component*x_component + y_component*y_component)};
     // Unicycle
-    double w = 20*phi_error;
-    double v = Kp*distance;
 
+    double w;
+    double v;
+
+    if ((abs(phi_error) > 0.4) && ( abs(phi_error) < 2.7))
+    {
+        std::cout << "setting angle\n";
+        w = 20*phi_error;
+        v = 0.1*distance;
+    }
+
+    else
+    {
+        std::cout << "setting vel\n";
+        w = 5*phi_error;
+        v = 4*distance;
+    }
     
 
     double right_velocity = (2.0*v + w*lengthBtnWheels)/2.0*wheelRadius;
@@ -149,16 +164,16 @@ void navigateToPoint(double setpoint[3])
         left_velocity = -maxSpeed;
 
     setVelocity(right_velocity, left_velocity);
-    // std::cout << phi_error << "          " << phi_ref << "          " << yaw << '\n';
+    std::cout << phi_error << "          " << phi_ref << "          " << yaw << '\n';
     // std::cout << right_velocity << ' ' << left_velocity << '\n' << '\n';
 
     double dist = findDistanceBetweenPoints(currLocation,setpoint);
-    std::cout << "dist: " << dist << '\n';
-    // std::cout << "Speeds: " << right_velocity << ' ' << left_velocity <<'\n';
-    std::cout << "Setpoint: " << setpoint[0] << ' ' << setpoint[1] << ' ' << setpoint[2] << '\n';
-    std::cout << "Setpoint: " << g_setpoint[0] << ' ' << g_setpoint[1] << ' ' << g_setpoint[2] << '\n'<<'\n';
+    // std::cout << "dist: " << dist << '\n';
+    // // std::cout << "Speeds: " << right_velocity << ' ' << left_velocity <<'\n';
+    // std::cout << "Setpoint: " << setpoint[0] << ' ' << setpoint[1] << ' ' << setpoint[2] << '\n';
+    // std::cout << "Setpoint: " << g_setpoint[0] << ' ' << g_setpoint[1] << ' ' << g_setpoint[2] << '\n'<<'\n';
     
-    if (dist<5)
+    if (dist<3)
     {
         std::cout << "Reached setpoint\n";
         std_msgs::Bool value;
@@ -295,8 +310,11 @@ int main(int argc, char **argv)
    
     ros::Rate loop_rate(10); //100 Hz
 
+    // int navigationCount{0}; //For seeting up bot direction in 1st loop
+
     while (ros::ok())
     {
+        
         if ((senderLocation.compare("nil") != 0) && (receiverLocation.compare("nil") !=0))     //if both are not nill, then true
         {
             navigateToPoint(g_setpoint);
@@ -311,7 +329,7 @@ int main(int argc, char **argv)
             reachedSetpointPub.publish(value);
         }
 
-        std::cout << senderLocation << ' ' << receiverLocation << '\n';
+        // std::cout << senderLocation << ' ' << receiverLocation << '\n';
         
         
         
