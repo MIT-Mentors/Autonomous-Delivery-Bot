@@ -25,7 +25,8 @@ double lengthBtnWheels{0.8};
 double maxSpeed{20};
 
 double currLocation[3]{};
-double GPSValIntersection[3] = {-43,0.9,44};
+double GPSValIntersection[3]{-43,0.9,44};
+
 
 ros::NodeHandle* nh; //pointer
 
@@ -94,6 +95,7 @@ void setVelocity(double rightVelocity, double leftVelocity)
             std::cout << "Failed to set velocity\n";
         }
 }
+
 void navigateToPoint(double setpoint[3])
 {
     // double error = findDistanceBetweenPoints(currLocation, setpoint);
@@ -115,10 +117,10 @@ void navigateToPoint(double setpoint[3])
     double phi_error1 = phi_ref-yaw;
     double phi_error = atan2(sin(phi_error1),cos(phi_error1));
 
-    // Unicycle
     // double w = 20*phi_error;
     // double v = 2*(sqrt(x_component*x_component + y_component*y_component));
 
+    // Unicycle
     double w = 20*phi_error;
     double v = 2*(sqrt(x_component*x_component + y_component*y_component));
 
@@ -178,9 +180,9 @@ void GPSCallback(const geometry_msgs::PointStamped::ConstPtr &values)
     // std::cout << "Distance: " << intersectionDistance << '\n';
 
     if (intersectionDistance < 3.5)
-        {
-            turnFlag = 1;
-        }
+    {
+        turnFlag = 1;
+    }
     else
     {
         turnFlag = 0;
@@ -244,6 +246,7 @@ int main(int argc, char **argv)
 
     //ros::Subscriber dir_sub = n.subscribe("/directions",1000,callbackDirections);
 
+    // ros::Publisher reachedSetpointPub = n.advertise<std::bool>
    
     ros::Rate loop_rate(100); //100 Hz
 
