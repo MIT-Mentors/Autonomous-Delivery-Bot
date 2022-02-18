@@ -161,7 +161,7 @@ void navigateToPoint(double setpoint[3])
     
     if (dist<10)
     {
-        std::cout << "Reached setpoint";
+        std::cout << "Reached setpoint\n";
         std_msgs::Bool value;
         value.data = 1;
         reachedSetpointPub.publish(value);

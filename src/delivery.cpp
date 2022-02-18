@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 
     // std_msgs::Int8 setpointFlag;
 
-    std::string senderLocation{"Location A"}; 
+    // std::string senderLocation{"Location A"}; 
 
     while (ros::ok())
     {
@@ -130,32 +130,57 @@ int main(int argc, char **argv)
             setAvailabilityStatus("yes");
         }
 
+        std::cout << "Seeting setpoint to " << senderLocation << '\n';
         setpoint_pub.publish(setpointsArray);
+        break;
 
-        if (reachedSetpointBool)
-            {
-                if (receiverLocation.compare("Location A") == 0)
-                {
-                    assignSetpoint(placeA);
-                }
-                else if (receiverLocation.compare("Location B") == 0)
-                {
-                    assignSetpoint(placeB);
-                }
-                else if (receiverLocation.compare("Location C") == 0)
-                {
-                    assignSetpoint(placeC);
-                }
-                else if (receiverLocation.compare("Location D") == 0)
-                {
-                    assignSetpoint(placeD);
-                }
-                else
-                {
-                    assignSetpoint(placeNil);
-                }
-            }
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
 
+    while (ros::ok() && !reachedSetpointBool)
+    {
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
+
+    while(ros::ok())
+    {
+        if (receiverLocation.compare("Location A") == 0)
+        {
+            assignSetpoint(placeA);
+        }
+        else if (receiverLocation.compare("Location B") == 0)
+        {
+            assignSetpoint(placeB);
+        }
+        else if (receiverLocation.compare("Location C") == 0)
+        {
+            assignSetpoint(placeC);
+        }
+        else if (receiverLocation.compare("Location D") == 0)
+        {
+            assignSetpoint(placeD);
+        }
+        else
+        {
+            assignSetpoint(placeNil);
+        }
+
+        std::cout << "Seeting setpoint to " << receiverLocation << '\n';
+
+        setpoint_pub.publish(setpointsArray);
+        break;
+
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
+
+    while (ros::ok())
+    {
+        ros::spinOnce();
+        loop_rate.sleep();
+    }
         // if (senderLocation.compare("Location A"))
         // {
         //     setpointsArray[0][0] = placeA[0];
@@ -202,9 +227,4 @@ int main(int argc, char **argv)
         //     setpoint{placeC};
         // else if (senderLocation.compare("Location D"))
         //     setpoint{placeD};
-
-
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
 }
