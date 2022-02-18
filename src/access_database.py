@@ -25,6 +25,13 @@ def set_availability_status(status):
 	'''
 	app_handle.put(url='',name='availability',data=status.data)
 	print("Setting availability to",status)
+
+def set_progress_status(status):
+	'''
+	status = "in progress"/"done"
+	'''
+	app_handle.put(url='delivery',name='status',data=status.data)
+	print("Setting progress status to",status)
 	
 def set_delivery_status(status):
 	app_handle.put(url='delivery',name='status',data=status)
@@ -38,6 +45,7 @@ def main():
 	receiver_location_pub = rospy.Publisher('receiver_location', String, queue_size=10)
 
 	availability_status_sub = rospy.Subscriber("availability", String,set_availability_status)
+	progress_status_sub = rospy.Subscriber("progress", String,set_progress_status)
 
 	rate = rospy.Rate(100) # 1Hz
 

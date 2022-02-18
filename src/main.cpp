@@ -167,6 +167,12 @@ void navigateToPoint(double setpoint[3])
         value.data = 1;
         reachedSetpointPub.publish(value);
     }
+    else
+        {
+            std_msgs::Bool value;
+            value.data = 0;
+            reachedSetpointPub.publish(value);
+        }
 
 }
 
@@ -272,9 +278,9 @@ int main(int argc, char **argv)
 
     //ros::Subscriber dir_sub = n.subscribe("/directions",1000,callbackDirections);
 
-    reachedSetpointPub = n.advertise<std_msgs::Bool>("reachedSetpointBool",10);
+    reachedSetpointPub = n.advertise<std_msgs::Bool>("reachedSetpointBool",1000);
    
-    ros::Rate loop_rate(100); //100 Hz
+    ros::Rate loop_rate(10); //100 Hz
 
     while (ros::ok())
     {
