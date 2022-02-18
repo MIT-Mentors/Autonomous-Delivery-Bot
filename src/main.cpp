@@ -5,10 +5,12 @@
 
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Bool.h"
 
 #include <webots_ros/set_float.h>
 #include <webots_ros/set_int.h>
 #include <geometry_msgs/PointStamped.h>
+#include <geometry_msgs/Vector3.h>
 #include <sensor_msgs/Imu.h>
 
 
@@ -26,6 +28,10 @@ double maxSpeed{20};
 
 double currLocation[3]{};
 double GPSValIntersection[3]{-43,0.9,44};
+
+ros::Publisher reachedSetpointPub;
+
+double setpoint[3]{};
 
 
 ros::NodeHandle* nh; //pointer
@@ -46,6 +52,14 @@ void callbackNameParser(const std_msgs::String::ConstPtr &model)
     ROS_INFO("Robot Name: [%s]", model->data.c_str());
     robotName = static_cast<std::string>(model->data.c_str());
     flag = 1;
+}
+
+void setpointCallback(const geometry_msgs::Vector3::ConstPtr &array)
+{
+    setpoint[0] = array->x;
+    setpoint[1] = array->y;
+    setpoint[2] = array->z;
+
 }
 
 /* void callbackDirections(const std_msgs::String::ConstPtr& input_direction)
@@ -140,8 +154,18 @@ void navigateToPoint(double setpoint[3])
         left_velocity = -maxSpeed;
 
     setVelocity(right_velocity, left_velocity);
-    std::cout << phi_error << "          " << phi_ref << "          " << yaw << '\n';
-    std::cout << right_velocity << ' ' << left_velocity << '\n' << '\n';
+    // std::cout << phi_error << "          " << phi_ref << "          " << yaw << '\n';
+    // std::cout << right_velocity << ' ' << left_velocity << '\n' << '\n';
+
+    double dist = findDistanceBetweenPoints(currLocation,setpoint);
+    
+    if (dist<10)
+    {
+        std::cout << "Reached setpoint";
+        std_msgs::Bool value;
+        value.data = 1;
+        reachedSetpointPub.publish(value);
+    }
 
 }
 
@@ -243,17 +267,18 @@ int main(int argc, char **argv)
     // Gps
     ros::Subscriber gps_sub = n.subscribe(robotName+"/gps/values",1000,GPSCallback);
     ros::Subscriber imu_sub = n.subscribe(robotName+"/imu/quaternion", 1000, IMUCallback);
+    ros::Subscriber setpointSub = n.subscribe("setpoint", 1000, setpointCallback);
 
     //ros::Subscriber dir_sub = n.subscribe("/directions",1000,callbackDirections);
 
-    // ros::Publisher reachedSetpointPub = n.advertise<std::bool>
+    reachedSetpointPub = n.advertise<std_msgs::Bool>("reachedSetpointBool",10);
    
     ros::Rate loop_rate(100); //100 Hz
 
     while (ros::ok())
     {
         
-        navigateToPoint(GPSValIntersection);
+        navigateToPoint(setpoint);
         
         
         ros::spinOnce();

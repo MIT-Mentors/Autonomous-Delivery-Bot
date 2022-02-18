@@ -5,6 +5,9 @@
 
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Int8.h"
+#include "std_msgs/Bool.h"
+
 #include <webots_ros/set_float.h>
 #include <geometry_msgs/Vector3.h>
 
@@ -13,17 +16,25 @@ ros::NodeHandle* nh; //pointer
 std::string senderLocation;
 std::string receiverLocation;
 
+geometry_msgs:: Vector3 setpointsArray;
+
+
 // double setpointsArray[4][3]{{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
 
 ros::Publisher availability_pub{};
 
 // std::vector<std::array> setpointsArray{};
 
-double placeA[3]{-41.42,0,0.30};
+// double placeA[3]{-41.42,0.0,0.30};
+double placeA[3]{-41.42,0.0,40.82};
 double placeB[3]{-2.3,0,49.45};
 double placeC[3]{58.59,0,40.82};
 double placeD[3]{93.61,0,40.82};
 double intersection[3]{-43,0.9,44};
+
+double placeNil[3]{0.0,0.0,0.0};
+
+bool reachedSetpointBool{0};
 
 // double currLocation[3]{placeA};
 
@@ -38,6 +49,13 @@ double intersection[3]{-43,0.9,44};
 //     intersection;
 //     numOfPlaces;
 // };
+
+void assignSetpoint(double placeArray[3])
+{
+    setpointsArray.x = placeArray[0];
+    setpointsArray.y = placeArray[1];
+    setpointsArray.z = placeArray[2];
+}
 
 void setAvailabilityStatus(std::string status)
 {
@@ -58,6 +76,11 @@ void receiverLocationCallback(const std_msgs::String::ConstPtr &name)
     receiverLocation = static_cast<std::string>(name->data.c_str());
 }
 
+void reachedSetpointCallback(const std_msgs::Bool::ConstPtr &value)
+{   
+    reachedSetpointBool = value->data;
+}
+
 int main(int argc, char **argv)
 {
     ros::init(argc,argv,"delivery");
@@ -68,22 +91,70 @@ int main(int argc, char **argv)
     availability_pub = n.advertise<std_msgs::String>("availability",1000);
     ros::Publisher setpoint_pub = n.advertise<geometry_msgs::Vector3>("setpoint",1000);
 
-    ros::Subscriber senderLocationPub = n.subscribe("sender_location",1000,senderLocationCallback);
-    ros::Subscriber receiverLocationPub = n.subscribe("receiver_location",1000,receiverLocationCallback);
-    
+    // ros::Subscriber senderLocationSub = n.subscribe("sender_location",1000,senderLocationCallback);
+    ros::Subscriber receiverLocationSub = n.subscribe("receiver_location",1000,receiverLocationCallback);
+    ros::Subscriber reachedSetpointSub = n.subscribe("reachedSetpointBool",10,reachedSetpointCallback);
+
     ros::Rate loop_rate(100);
 
-    while (ros::ok)
+    // std_msgs::Int8 setpointFlag;
+
+    std::string senderLocation{"Location A"}; 
+
+    while (ros::ok())
     {
 
-        if (senderLocation.compare("Location A"))
-            setpoint_pub.publish(placeA);
-        else if (senderLocation.compare("Location B"))
-            setpoint_pub.publish(placeB);
-        else if (senderLocation.compare("Location C"))
-            setpoint_pub.publish(placeC);
-        else if (senderLocation.compare("Location D"))
-            setpoint_pub.publish(placeD);
+        if (senderLocation.compare("Location A") == 0)
+        {
+            assignSetpoint(placeA);
+            setAvailabilityStatus("no");
+        }
+        else if (senderLocation.compare("Location B") == 0)
+        {
+            assignSetpoint(placeB);
+            setAvailabilityStatus("no");
+        }
+        else if (senderLocation.compare("Location C") == 0)
+        {
+            assignSetpoint(placeC);
+            setAvailabilityStatus("no");
+        }
+        else if (senderLocation.compare("Location D") == 0)
+        {
+            assignSetpoint(placeD);
+            setAvailabilityStatus("no");
+        }
+        else
+        {
+            assignSetpoint(placeNil);
+            setAvailabilityStatus("yes");
+        }
+
+        setpoint_pub.publish(setpointsArray);
+
+        if (reachedSetpointBool)
+            {
+                if (receiverLocation.compare("Location A") == 0)
+                {
+                    assignSetpoint(placeA);
+                }
+                else if (receiverLocation.compare("Location B") == 0)
+                {
+                    assignSetpoint(placeB);
+                }
+                else if (receiverLocation.compare("Location C") == 0)
+                {
+                    assignSetpoint(placeC);
+                }
+                else if (receiverLocation.compare("Location D") == 0)
+                {
+                    assignSetpoint(placeD);
+                }
+                else
+                {
+                    assignSetpoint(placeNil);
+                }
+            }
 
         // if (senderLocation.compare("Location A"))
         // {

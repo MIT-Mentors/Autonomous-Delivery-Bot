@@ -23,7 +23,7 @@ def set_availability_status(status):
 	'''
 	status = "yes"/"no"
 	'''
-	app_handle.put(url='',name='availability',data=status)
+	app_handle.put(url='',name='availability',data=status.data)
 	print("Setting availability to",status)
 	
 def set_delivery_status(status):
@@ -33,25 +33,26 @@ def set_delivery_status(status):
 def main():
 	rospy.init_node('access_database',anonymous=True)
 
-	direction_pub = rospy.Publisher('directions', String, queue_size=10) 
+	# direction_pub = rospy.Publisher('directions', String, queue_size=10) 
 	sender_location_pub = rospy.Publisher('sender_location', String, queue_size=10)
 	receiver_location_pub = rospy.Publisher('receiver_location', String, queue_size=10)
 
+	availability_status_sub = rospy.Subscriber("availability", String,set_availability_status)
 
 	rate = rospy.Rate(100) # 1Hz
 
 		
 	while not rospy.is_shutdown():
 
-		direction = get_directions_from_user()
-		rospy.loginfo( direction )
+		# direction = get_directions_from_user()
+		# rospy.loginfo( direction )
 
-		direction_pub.publish(direction)
+		# direction_pub.publish(direction)
 		publish_delivery_info(sender_location_pub, receiver_location_pub)
 
 		rate.sleep()
 
-		set_availability_status()
+		# set_availability_status()
 
 
 
