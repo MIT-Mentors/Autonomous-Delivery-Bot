@@ -62,6 +62,10 @@ void assignSetpoint(double placeArray[3])
     setpointsArray.x = placeArray[0];
     setpointsArray.y = placeArray[1];
     setpointsArray.z = placeArray[2];
+
+    placeNil[0] = placeArray[0];
+    placeNil[1] = placeArray[1];
+    placeNil[2] = placeArray[2];
 }
 
 void setAvailabilityStatus(std::string status)
@@ -116,19 +120,17 @@ int main(int argc, char **argv)
 
     ros::Subscriber senderLocationSub = n.subscribe("sender_location",1000,senderLocationCallback);
     ros::Subscriber receiverLocationSub = n.subscribe("receiver_location",1000,receiverLocationCallback);
-    ros::Subscriber reachedSetpointSub = n.subscribe("reachedSetpointBool",1000,reachedSetpointCallback);
+    ros::Subscriber reachedSetpointSub = n.subscribe("reachedSetpointBool",10,reachedSetpointCallback);
 
-    ros::Rate loop_rate(10);
-
-    // std_msgs::Int8 setpointFlag;
-
-    // std::string senderLocation{"Location A"}; 
+    ros::Rate loop_rate(10); 
 
     while (ros::ok())
     {
         // std::cout << "reachedSetpointBool: " << reachedSetpointBool << '\n';
         while (ros::ok())
         {
+            int loopCount1{0};
+
             if (senderLocation.compare("Location A") == 0)
             {
                 assignSetpoint(placeA);
@@ -155,12 +157,20 @@ int main(int argc, char **argv)
             }
             else
             {
-                assignSetpoint(placeNil);
-                setAvailabilityStatus("yes");
+                // assignSetpoint(placeNil);
             }
 
             std::cout << "Setting setpoint to " << senderLocation << '\n';
             setpoint_pub.publish(setpointsArray);
+
+            if (loopCount1 == 0)
+            {
+                sleep(2);
+                ++loopCount1;
+                ros::spinOnce();
+                loop_rate.sleep();
+            }
+            
 
             ros::spinOnce();
             loop_rate.sleep();
@@ -193,101 +203,36 @@ int main(int argc, char **argv)
             }
             else
             {
-                assignSetpoint(placeNil);
+                // assignSetpoint(placeNil);
             }
 
             std::cout << "Seeting setpoint to " << receiverLocation << '\n';
 
             setpoint_pub.publish(setpointsArray);
 
-            // std::cout << "Sleeping started\n";
-            // sleep(5);
-            // ros::spinOnce();
-            // loop_rate.sleep();
-            // std::cout << "Sleeping ended\n";
-
             if (loopCount == 0)
             {
-                sleep(3);
+                sleep(2);
                 ++loopCount;
                 ros::spinOnce();
                 loop_rate.sleep();
             }
             
+            ros::spinOnce();
+            loop_rate.sleep();
+
             if (reachedSetpointBool)
             {
                 setProgressStatus("done");
-            std::cout << "Seeting progress status to done\n";
-
+                std::cout << "Seeting progress status to done\n";
+                setAvailabilityStatus("yes");
                 break;
-
             }
-
-            ros::spinOnce();
-            loop_rate.sleep();
         }
 
+        // break;
+        sleep(2);
         ros::spinOnce();
         loop_rate.sleep();
     }
-
-    // while (ros::ok() && !reachedSetpointBool)
-    // {
-    //     ros::spinOnce();
-    //     loop_rate.sleep();
-    // }
-
-    
-
-    while (ros::ok())
-    {
-        ros::spinOnce();
-        loop_rate.sleep();
-    }
-        // if (senderLocation.compare("Location A"))
-        // {
-        //     setpointsArray[0][0] = placeA[0];
-        //     setpointsArray[0][1] = placeA[1];
-        //     setpointsArray[0][2] = placeA[2];
-        // }
-
-        // else if (senderLocation.compare("Location B"))
-        // {
-        //     setpointsArray[0][0] = intersection[0];
-        //     setpointsArray[0][1] = intersection[1];
-        //     setpointsArray[0][2] = intersection[2];
-
-        //     setpointsArray[1][0] = placeB[0];
-        //     setpointsArray[1][1] = placeB[1];
-        //     setpointsArray[1][2] = placeB[2];
-        // }
-        // else if (senderLocation.compare("Location c"))
-        // {
-        //     setpointsArray[0][0] = intersection[0];
-        //     setpointsArray[0][1] = intersection[1];
-        //     setpointsArray[0][2] = intersection[2];
-
-        //     setpointsArray[1][0] = placeC[0];
-        //     setpointsArray[1][1] = placeC[1];
-        //     setpointsArray[1][2] = placeC[2];
-        // }
-        // else if (senderLocation.compare("Location D"))
-        // {
-        //     setpointsArray[0][0] = intersection[0];
-        //     setpointsArray[0][1] = intersection[1];
-        //     setpointsArray[0][2] = intersection[2];
-
-        //     setpointsArray[1][0] = placeD[0];
-        //     setpointsArray[1][1] = placeD[1];
-        //     setpointsArray[1][2] = placeD[2];
-        // }
-
-        // if (senderLocation.compare("Location A"))
-        //     setpoint{placeA};
-        // else if (senderLocation.compare("Location B"))
-        //     setpoint{placeB};
-        // else if (senderLocation.compare("Location C"))
-        //     setpoint{placeC};
-        // else if (senderLocation.compare("Location D"))
-        //     setpoint{placeD};
 }

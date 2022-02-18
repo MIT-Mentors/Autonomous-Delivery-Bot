@@ -16,6 +16,8 @@
 
 std::string robotName{""};
 std::string direction{""};
+std::string senderLocation;
+std::string receiverLocation;
 
 int flag{0};
 int straightFlag{0};
@@ -31,7 +33,7 @@ double GPSValIntersection[3]{-43,0.9,44};
 
 ros::Publisher reachedSetpointPub;
 
-double setpoint[3]{};
+double g_setpoint[3]{};
 
 
 ros::NodeHandle* nh; //pointer
@@ -56,9 +58,9 @@ void callbackNameParser(const std_msgs::String::ConstPtr &model)
 
 void setpointCallback(const geometry_msgs::Vector3::ConstPtr &array)
 {
-    setpoint[0] = array->x;
-    setpoint[1] = array->y;
-    setpoint[2] = array->z;
+    g_setpoint[0] = array->x;
+    g_setpoint[1] = array->y;
+    g_setpoint[2] = array->z;
 
 }
 
@@ -113,15 +115,7 @@ void setVelocity(double rightVelocity, double leftVelocity)
 void navigateToPoint(double setpoint[3])
 {
     // double error = findDistanceBetweenPoints(currLocation, setpoint);
-    // double Kp = 1;
-
-    // double velocity = Kp*error;
-
-    // if (velocity > 20)
-    // {
-    //     velocity = 20;
-    // }
-    // setVelocity(0.0);
+    double Kp = 2;
 
     double x_component{setpoint[0] - currLocation[0]};
     double y_component{setpoint[2] - currLocation[2]};
@@ -134,9 +128,10 @@ void navigateToPoint(double setpoint[3])
     // double w = 20*phi_error;
     // double v = 2*(sqrt(x_component*x_component + y_component*y_component));
 
+    double distance{sqrt(x_component*x_component + y_component*y_component)};
     // Unicycle
     double w = 20*phi_error;
-    double v = 2*(sqrt(x_component*x_component + y_component*y_component));
+    double v = Kp*distance;
 
     
 
@@ -159,6 +154,9 @@ void navigateToPoint(double setpoint[3])
 
     double dist = findDistanceBetweenPoints(currLocation,setpoint);
     std::cout << "dist: " << dist << '\n';
+    // std::cout << "Speeds: " << right_velocity << ' ' << left_velocity <<'\n';
+    std::cout << "Setpoint: " << setpoint[0] << ' ' << setpoint[1] << ' ' << setpoint[2] << '\n';
+    std::cout << "Setpoint: " << g_setpoint[0] << ' ' << g_setpoint[1] << ' ' << g_setpoint[2] << '\n'<<'\n';
     
     if (dist<5)
     {
@@ -168,11 +166,24 @@ void navigateToPoint(double setpoint[3])
         reachedSetpointPub.publish(value);
     }
     else
-        {
-            std_msgs::Bool value;
-            value.data = 0;
-            reachedSetpointPub.publish(value);
-        }
+    {
+        std_msgs::Bool value;
+        value.data = 0;
+        reachedSetpointPub.publish(value);
+    }
+
+}
+
+void senderLocationCallback(const std_msgs::String::ConstPtr &name)
+{
+    senderLocation = static_cast<std::string>(name->data.c_str());
+    // std::cout << "Sender loc: " << senderLocation << '\n';
+}
+
+void receiverLocationCallback(const std_msgs::String::ConstPtr &name)
+{
+    receiverLocation = static_cast<std::string>(name->data.c_str());
+    // std::cout << "Reeceiver loc: " << receiverLocation << '\n';
 
 }
 
@@ -274,8 +285,10 @@ int main(int argc, char **argv)
     // Gps
     ros::Subscriber gps_sub = n.subscribe(robotName+"/gps/values",1000,GPSCallback);
     ros::Subscriber imu_sub = n.subscribe(robotName+"/imu/quaternion", 1000, IMUCallback);
-    ros::Subscriber setpointSub = n.subscribe("setpoint", 1000, setpointCallback);
-
+    ros::Subscriber setpointSub = n.subscribe("setpoint", 10, setpointCallback);
+    ros::Subscriber senderLocationSub = n.subscribe("sender_location",1000,senderLocationCallback);
+    ros::Subscriber receiverLocationSub = n.subscribe("receiver_location",1000,receiverLocationCallback);
+    
     //ros::Subscriber dir_sub = n.subscribe("/directions",1000,callbackDirections);
 
     reachedSetpointPub = n.advertise<std_msgs::Bool>("reachedSetpointBool",1000);
@@ -284,8 +297,22 @@ int main(int argc, char **argv)
 
     while (ros::ok())
     {
+        if ((senderLocation.compare("nil") != 0) && (receiverLocation.compare("nil") !=0))     //if both are not nill, then true
+        {
+            navigateToPoint(g_setpoint);
+        }
+        else
+        {
+            std::cout << "stable\n";
+            setVelocity(0.0, 0.0);
+
+            std_msgs::Bool value;
+            value.data = 0;
+            reachedSetpointPub.publish(value);
+        }
+
+        std::cout << senderLocation << ' ' << receiverLocation << '\n';
         
-        navigateToPoint(setpoint);
         
         
         ros::spinOnce();

@@ -24,14 +24,21 @@ def set_availability_status(status):
 	status = "yes"/"no"
 	'''
 	app_handle.put(url='',name='availability',data=status.data)
-	print("Setting availability to",status)
+	print("Setting availability to",status.data)
 
 def set_progress_status(status):
 	'''
 	status = "in progress"/"done"
 	'''
-	app_handle.put(url='delivery',name='status',data=status.data)
-	print("Setting progress status to",status)
+	progress_status = status.data
+	app_handle.put(url='delivery',name='status',data=progress_status)
+	print("Setting progress status to",progress_status)
+
+	if progress_status == "done":
+		print("Setting sender receiver to nil")
+		app_handle.put(url='delivery/ID-1/location',name='sender',data="nil")
+		app_handle.put(url='delivery/ID-1/location',name='receiver',data="nil")
+		
 	
 def set_delivery_status(status):
 	app_handle.put(url='delivery',name='status',data=status)
@@ -47,7 +54,7 @@ def main():
 	availability_status_sub = rospy.Subscriber("availability", String,set_availability_status)
 	progress_status_sub = rospy.Subscriber("progress", String,set_progress_status)
 
-	rate = rospy.Rate(100) # 1Hz
+	rate = rospy.Rate(1) # 1Hz
 
 		
 	while not rospy.is_shutdown():
