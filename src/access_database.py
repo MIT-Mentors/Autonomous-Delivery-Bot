@@ -24,7 +24,7 @@ def set_availability_status(status):
 	status = "yes"/"no"
 	'''
 	app_handle.put(url='',name='availability',data=status.data)
-	print("Setting availability to",status.data)
+	# print("Setting availability to",status.data)
 
 def set_progress_status(status):
 	'''
@@ -32,18 +32,13 @@ def set_progress_status(status):
 	'''
 	progress_status = status.data
 	app_handle.put(url='delivery',name='status',data=progress_status)
-	print("Setting progress status to",progress_status)
+	# print("Setting progress status to",progress_status)
 
 	if progress_status == "done":
 		print("Setting sender receiver to nil")
 		app_handle.put(url='delivery/ID-1/location',name='sender',data="nil")
 		app_handle.put(url='delivery/ID-1/location',name='receiver',data="nil")
 		
-	
-def set_delivery_status(status):
-	app_handle.put(url='delivery',name='status',data=status)
-	print("Setting delivery status to",status)
-
 def main():
 	rospy.init_node('access_database',anonymous=True)
 

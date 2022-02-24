@@ -135,19 +135,22 @@ void navigateToPoint(double setpoint[3])
     double w;
     double v;
 
-    if ((abs(phi_error) > 0.4) && ( abs(phi_error) < 2.7))
-    {
-        std::cout << "setting angle\n";
-        w = 20*phi_error;
-        v = 0.1*distance;
-    }
+    // if ((abs(phi_error) > 0.4) && ( abs(phi_error) < 2.7))
+    // {
+    //     std::cout << "setting angle\n";
+    //     w = 20*phi_error;
+    //     v = 0.1*distance;
+    // }
 
-    else
-    {
-        std::cout << "setting vel\n";
-        w = 5*phi_error;
-        v = 4*distance;
-    }
+    // else
+    // {
+    //     std::cout << "setting vel\n";
+    //     w = 5*phi_error;
+    //     v = 4*distance;
+    // }
+
+    w = 10*phi_error;
+    v = Kp*distance;
     
 
     double right_velocity = (2.0*v + w*lengthBtnWheels)/2.0*wheelRadius;
@@ -164,16 +167,18 @@ void navigateToPoint(double setpoint[3])
         left_velocity = -maxSpeed;
 
     setVelocity(right_velocity, left_velocity);
-    std::cout << phi_error << "          " << phi_ref << "          " << yaw << '\n';
+    // std::cout << phi_error << "          " << phi_ref << "          " << yaw << '\n';
     // std::cout << right_velocity << ' ' << left_velocity << '\n' << '\n';
 
     double dist = findDistanceBetweenPoints(currLocation,setpoint);
-    // std::cout << "dist: " << dist << '\n';
+    std::cout << "dist: " << dist << '\n';
     // // std::cout << "Speeds: " << right_velocity << ' ' << left_velocity <<'\n';
-    // std::cout << "Setpoint: " << setpoint[0] << ' ' << setpoint[1] << ' ' << setpoint[2] << '\n';
+    std::cout << "Setpoint: " << setpoint[0] << ' ' << setpoint[1] << ' ' << setpoint[2] << '\n';
+    std::cout << "CurrLocation: " << currLocation[0] << ' ' << currLocation[1] << ' ' << currLocation[2] << '\n';
+    
     // std::cout << "Setpoint: " << g_setpoint[0] << ' ' << g_setpoint[1] << ' ' << g_setpoint[2] << '\n'<<'\n';
     
-    if (dist<3)
+    if (dist<5)
     {
         std::cout << "Reached setpoint\n";
         std_msgs::Bool value;
@@ -289,13 +294,18 @@ int main(int argc, char **argv)
     nh = &n;    // assigning node handle object to global pointer
 
     ros::Subscriber sub = n.subscribe("/model_name",1000,callbackNameParser);
+    // setVelocity(0.0, 0.0);
     
 
     while (flag == 0) {ros::spinOnce();}
 
+
     initNavigation();
     enableGPS();
     enableIMU();
+
+    setVelocity(0.0, 0.0);
+
 
     // Gps
     ros::Subscriber gps_sub = n.subscribe(robotName+"/gps/values",1000,GPSCallback);
@@ -315,13 +325,13 @@ int main(int argc, char **argv)
     while (ros::ok())
     {
         
-        if ((senderLocation.compare("nil") != 0) && (receiverLocation.compare("nil") !=0))     //if both are not nill, then true
+        if ((senderLocation.compare("nil") != 0) && (receiverLocation.compare("nil") !=0) && g_setpoint[0] != 0)     //if both are not nill and setpoint has set, then true
         {
             navigateToPoint(g_setpoint);
         }
         else
         {
-            std::cout << "stable\n";
+            // std::cout << "stable\n";
             setVelocity(0.0, 0.0);
 
             std_msgs::Bool value;
