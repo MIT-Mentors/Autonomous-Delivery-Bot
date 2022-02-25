@@ -14,6 +14,12 @@
 #include <geometry_msgs/Vector3.h>
 #include <sensor_msgs/Imu.h>
 
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
+
 
 std::string robotName{""};
 std::string direction{""};
@@ -329,6 +335,7 @@ int main(int argc, char **argv)
         
         if ((senderLocation.compare("nil") != 0) && (receiverLocation.compare("nil") !=0) && g_setpoint[0] != 0)     //if both are not nill and setpoint has set, then true
         {
+            // sleep(2);
             navigateToPoint(g_setpoint);
         }
         else

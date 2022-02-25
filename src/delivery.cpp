@@ -171,7 +171,6 @@ int main(int argc, char **argv)
                 loop_rate.sleep();
             }
             
-
             ros::spinOnce();
             loop_rate.sleep();
 
@@ -188,18 +187,26 @@ int main(int argc, char **argv)
             if (receiverLocation.compare("Location A") == 0)
             {
                 assignSetpoint(placeA);
+                // setAvailabilityStatus("no");
+                // setProgressStatus("in progress");
             }
             else if (receiverLocation.compare("Location B") == 0)
             {
                 assignSetpoint(placeB);
+                // setAvailabilityStatus("no");
+                // setProgressStatus("in progress");
             }
             else if (receiverLocation.compare("Location C") == 0)
             {
                 assignSetpoint(placeC);
+                // setAvailabilityStatus("no");
+                // setProgressStatus("in progress");
             }
             else if (receiverLocation.compare("Location D") == 0)
             {
                 assignSetpoint(placeD);
+                // setAvailabilityStatus("no");
+                // setProgressStatus("in progress");
             }
             else
             {
