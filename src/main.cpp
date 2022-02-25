@@ -130,6 +130,8 @@ void navigateToPoint(double setpoint[3])
     // double v = 2*(sqrt(x_component*x_component + y_component*y_component));
 
     double distance{sqrt(x_component*x_component + y_component*y_component)};
+
+    // if (distance>20)
     // Unicycle
 
     double w;
@@ -149,7 +151,7 @@ void navigateToPoint(double setpoint[3])
     //     v = 4*distance;
     // }
 
-    w = 10*phi_error;
+    w = distance*phi_error;
     v = Kp*distance;
     
 
@@ -167,14 +169,14 @@ void navigateToPoint(double setpoint[3])
         left_velocity = -maxSpeed;
 
     setVelocity(right_velocity, left_velocity);
-    // std::cout << phi_error << "          " << phi_ref << "          " << yaw << '\n';
+    // std::cout << phi_error << '\n'; //<< "          " << phi_ref << "          " << yaw << '\n';
     // std::cout << right_velocity << ' ' << left_velocity << '\n' << '\n';
 
     double dist = findDistanceBetweenPoints(currLocation,setpoint);
     std::cout << "dist: " << dist << '\n';
-    // // std::cout << "Speeds: " << right_velocity << ' ' << left_velocity <<'\n';
-    std::cout << "Setpoint: " << setpoint[0] << ' ' << setpoint[1] << ' ' << setpoint[2] << '\n';
-    std::cout << "CurrLocation: " << currLocation[0] << ' ' << currLocation[1] << ' ' << currLocation[2] << '\n';
+    // std::cout << "Speeds: " << right_velocity << ' ' << left_velocity <<'\n';
+    // std::cout << "Setpoint: " << setpoint[0] << ' ' << setpoint[1] << ' ' << setpoint[2] << '\n';
+    // std::cout << "CurrLocation: " << currLocation[0] << ' ' << currLocation[1] << ' ' << currLocation[2] << '\n';
     
     // std::cout << "Setpoint: " << g_setpoint[0] << ' ' << g_setpoint[1] << ' ' << g_setpoint[2] << '\n'<<'\n';
     
