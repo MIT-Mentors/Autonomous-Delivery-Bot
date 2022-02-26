@@ -13,8 +13,11 @@ def get_directions_from_user():
 	return direction
 
 def publish_delivery_info(sender_location_pub, receiver_location_pub):
-	sender_location = app_handle.get('delivery/ID-1/location/sender',None)
-	receiver_location = app_handle.get('delivery/ID-1/location/receiver',None)
+	# sender_location = app_handle.get('delivery/ID-1/location/sender',None)
+	# receiver_location = app_handle.get('delivery/ID-1/location/receiver',None)
+
+	sender_location = app_handle.get('currentDelivery/Sender/Location',None)
+	receiver_location = app_handle.get('currentDelivery/Receiver/Location',None)
 	
 	sender_location_pub.publish(sender_location)
 	receiver_location_pub.publish(receiver_location)
@@ -31,13 +34,13 @@ def set_progress_status(status):
 	status = "in progress"/"done"
 	'''
 	progress_status = status.data
-	app_handle.put(url='delivery',name='status',data=progress_status)
+	app_handle.put(url='currentDelivery',name='status',data=progress_status)
 	# print("Setting progress status to",progress_status)
 
 	if progress_status == "done":
 		print("Setting sender receiver to nil")
-		app_handle.put(url='delivery/ID-1/location',name='sender',data="nil")
-		app_handle.put(url='delivery/ID-1/location',name='receiver',data="nil")
+		app_handle.put(url='currentDelivery/Receiver',name='Location',data="nil")
+		app_handle.put(url='currentDelivery/Sender',name='Location',data="nil")
 		
 def main():
 	rospy.init_node('access_database',anonymous=True)

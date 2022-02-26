@@ -39,7 +39,7 @@ double placeC[3]{58.59,0,40.82};
 double placeD[3]{93.61,0,40.82};
 double intersection[3]{-43,0.9,44};
 
-double placeNil[3]{0.0,0.0,0.0};
+double placeNil[3]{100000.0,100000.0,100000.0};
 
 bool reachedSetpointBool{0};
 
@@ -63,9 +63,9 @@ void assignSetpoint(double placeArray[3])
     setpointsArray.y = placeArray[1];
     setpointsArray.z = placeArray[2];
 
-    placeNil[0] = placeArray[0];
-    placeNil[1] = placeArray[1];
-    placeNil[2] = placeArray[2];
+    // placeNil[0] = placeArray[0];
+    // placeNil[1] = placeArray[1];
+    // placeNil[2] = placeArray[2];
 }
 
 void setAvailabilityStatus(std::string status)
@@ -157,7 +157,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                // assignSetpoint(placeNil);
+                assignSetpoint(placeNil);
             }
 
             std::cout << "Setting setpoint to " << senderLocation << '\n';
@@ -176,6 +176,7 @@ int main(int argc, char **argv)
 
             if (reachedSetpointBool)
             {
+                std::cerr << "BREAKING SENDER LOOP\n";
                 break;
             }
         }
@@ -210,7 +211,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                // assignSetpoint(placeNil);
+                assignSetpoint(placeNil);
             }
 
             std::cout << "Seeting setpoint to " << receiverLocation << '\n';
@@ -233,6 +234,9 @@ int main(int argc, char **argv)
                 setProgressStatus("done");
                 std::cout << "Seeting progress status to done\n";
                 setAvailabilityStatus("yes");
+                ros::spinOnce();
+                loop_rate.sleep();
+                sleep(2);
                 break;
             }
         }
