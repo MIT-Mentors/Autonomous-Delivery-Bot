@@ -318,8 +318,8 @@ int main(int argc, char **argv)
     ros::Subscriber gps_sub = n.subscribe(robotName+"/gps/values",1000,GPSCallback);
     ros::Subscriber imu_sub = n.subscribe(robotName+"/imu/quaternion", 1000, IMUCallback);
     ros::Subscriber setpointSub = n.subscribe("setpoint", 1, setpointCallback);
-    ros::Subscriber senderLocationSub = n.subscribe("sender_location",1000,senderLocationCallback);
-    ros::Subscriber receiverLocationSub = n.subscribe("receiver_location",1000,receiverLocationCallback);
+    ros::Subscriber senderLocationSub = n.subscribe("senderLocation",1000,senderLocationCallback);
+    ros::Subscriber receiverLocationSub = n.subscribe("receiverLocation",1000,receiverLocationCallback);
     
     //ros::Subscriber dir_sub = n.subscribe("/directions",1000,callbackDirections);
 

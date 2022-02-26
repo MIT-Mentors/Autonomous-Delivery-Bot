@@ -5,69 +5,54 @@ import rospy
 from firebase import firebase
 from std_msgs.msg import String
 
-# Global variables
-app_handle = firebase.FirebaseApplication('https://autonomous-delivery-bot-default-rtdb.asia-southeast1.firebasedatabase.app', None)
+appHandle = firebase.FirebaseApplication(dsn='https://autonomous-delivery-bot-default-rtdb.asia-southeast1.firebasedatabase.app', authentication=None)
 
-def get_directions_from_user():
-	direction = app_handle.get('user/dir', None)
-	return direction
-
-def publish_delivery_info(sender_location_pub, receiver_location_pub):
-	# sender_location = app_handle.get('delivery/ID-1/location/sender',None)
-	# receiver_location = app_handle.get('delivery/ID-1/location/receiver',None)
-
-	sender_location = app_handle.get('currentDelivery/Sender/Location',None)
-	receiver_location = app_handle.get('currentDelivery/Receiver/Location',None)
-	
-	sender_location_pub.publish(sender_location)
-	receiver_location_pub.publish(receiver_location)
-
-def set_availability_status(status):
+def publishDeliveryInfo(senderLocationPub, receiverLocationPub):
 	'''
+	Gets the delivery location data from the database and publishes it.
+	'''
+	senderLocation = appHandle.get('currentDelivery/Sender/Location',None)
+	receiverLocation = appHandle.get('currentDelivery/Receiver/Location',None)
+	
+	senderLocationPub.publish(senderLocation)
+	receiverLocationPub.publish(receiverLocation)
+
+def setAvailabilityStatus(status):
+	'''
+	Sets the availability status of the robot.
 	status = "yes"/"no"
 	'''
-	app_handle.put(url='',name='availability',data=status.data)
-	# print("Setting availability to",status.data)
+	appHandle.put(url='',name='availability',data=status.data)
 
-def set_progress_status(status):
+def setProgressStatus(status):
 	'''
+	Sets the status of the current delivery.
 	status = "in progress"/"done"
 	'''
-	progress_status = status.data
-	app_handle.put(url='currentDelivery',name='status',data=progress_status)
-	# print("Setting progress status to",progress_status)
+	progressStatus = status.data
+	appHandle.put(url='currentDelivery',name='status',data=progressStatus)
 
-	if progress_status == "done":
-		print("Setting sender receiver to nil")
-		app_handle.put(url='currentDelivery/Receiver',name='Location',data="nil")
-		app_handle.put(url='currentDelivery/Sender',name='Location',data="nil")
+	if progressStatus == "done":
+		appHandle.put(url='currentDelivery/Receiver',name='Location',data="nil")
+		appHandle.put(url='currentDelivery/Sender',name='Location',data="nil")
 		
 def main():
 	rospy.init_node('access_database',anonymous=True)
 
-	# direction_pub = rospy.Publisher('directions', String, queue_size=10) 
-	sender_location_pub = rospy.Publisher('sender_location', String, queue_size=10)
-	receiver_location_pub = rospy.Publisher('receiver_location', String, queue_size=10)
+	# Publishers
+	senderLocationPub = rospy.Publisher('senderLocation', String, queue_size=10)
+	receiverLocationPub = rospy.Publisher('receiverLocation', String, queue_size=10)
 
-	availability_status_sub = rospy.Subscriber("availability", String,set_availability_status)
-	progress_status_sub = rospy.Subscriber("progress", String,set_progress_status)
+	# Subscribers
+	availabilityStatusSub = rospy.Subscriber("availability", String,setAvailabilityStatus)
+	progressStatusSub = rospy.Subscriber("progress", String,setProgressStatus)
 
-	rate = rospy.Rate(1) # 1Hz
-
+	rate = rospy.Rate(10) # 1Hz
 		
 	while not rospy.is_shutdown():
 
-		# direction = get_directions_from_user()
-		# rospy.loginfo( direction )
-
-		# direction_pub.publish(direction)
-		publish_delivery_info(sender_location_pub, receiver_location_pub)
-
+		publishDeliveryInfo(senderLocationPub, receiverLocationPub)
 		rate.sleep()
-
-		# set_availability_status()
-
-
 
 if __name__ == '__main__':
 	try:

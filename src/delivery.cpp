@@ -118,8 +118,8 @@ int main(int argc, char **argv)
 
     ros::Publisher setpoint_pub = n.advertise<geometry_msgs::Vector3>("setpoint",1000);
 
-    ros::Subscriber senderLocationSub = n.subscribe("sender_location",1000,senderLocationCallback);
-    ros::Subscriber receiverLocationSub = n.subscribe("receiver_location",1000,receiverLocationCallback);
+    ros::Subscriber senderLocationSub = n.subscribe("senderLocation",1000,senderLocationCallback);
+    ros::Subscriber receiverLocationSub = n.subscribe("receiverLocation",1000,receiverLocationCallback);
     ros::Subscriber reachedSetpointSub = n.subscribe("reachedSetpointBool",10,reachedSetpointCallback);
 
     ros::Rate loop_rate(10); 
