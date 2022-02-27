@@ -3,7 +3,7 @@ perspectives: 000000ff00000000fd000000030000000000000069000003d3fc0100000002fb00
 simulationViewPerspectives: 000000ff000000010000000200000000000004a30100000002010000000100
 sceneTreePerspectives: 000000ff0000000100000002000001f1000000fa0100000002010000000200
 maximizedDockId: -1
-centralWidgetVisible: 1
+centralWidgetVisible: 0
 orthographicViewHeight: 1
 textFiles: -1
 consoles: Console:All:All
