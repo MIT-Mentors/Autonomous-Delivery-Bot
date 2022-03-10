@@ -1,104 +1,76 @@
 #include <array>
-#include <string>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "ros/ros.h"
-#include "std_msgs/String.h"
-#include "std_msgs/Int8.h"
 #include "std_msgs/Bool.h"
+#include "std_msgs/Int8.h"
+#include "std_msgs/String.h"
 
 #include <webots_ros/set_float.h>
 #include <geometry_msgs/Vector3.h>
 
+// For sleep function
 #ifdef _WIN32
 #include <Windows.h>
 #else
 #include <unistd.h>
 #endif
 
-ros::NodeHandle* nh; //pointer
-
-std::string senderLocation;
-std::string receiverLocation;
-
-geometry_msgs:: Vector3 setpointsArray;
-
-
-// double setpointsArray[4][3]{{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0},{0.0,0.0,0.0}};
-
-ros::Publisher availability_pub{};
-ros::Publisher progress_status_pub{};
-
-// std::vector<std::array> setpointsArray{};
-
-// double placeA[3]{-41.42,0.0,0.30};
+// Hardcoded GPS values
 double placeA[3]{-41.42,0.0,40.82};
 double placeB[3]{-2.3,0,49.45};
 double placeC[3]{58.59,0,40.82};
 double placeD[3]{93.61,0,40.82};
-double intersection[3]{-43,0.9,44};
-
-double placeNil[3]{100000.0,100000.0,100000.0};
+double placeNil[3]{100000.0,100000.0,100000.0}; // default
 
 bool reachedSetpointBool{0};
 
-// double currLocation[3]{placeA};
+std::string senderLocation{};
+std::string receiverLocation{};
 
-// double array[3] places[5]{placeA,placeB,placeC,placeD,intersection};
+geometry_msgs:: Vector3 setpointArray;
 
-// enum Place
-// {
-//     A;
-//     B;
-//     C;
-//     D;
-//     intersection;
-//     numOfPlaces;
-// };
+ros::Publisher availabilityPub{};
+ros::Publisher progressStatusPub{};
+ros::Publisher setpointPub{};
 
 void assignSetpoint(double placeArray[3])
 {
-    setpointsArray.x = placeArray[0];
-    setpointsArray.y = placeArray[1];
-    setpointsArray.z = placeArray[2];
-
-    // placeNil[0] = placeArray[0];
-    // placeNil[1] = placeArray[1];
-    // placeNil[2] = placeArray[2];
+    setpointArray.x = placeArray[0];
+    setpointArray.y = placeArray[1];
+    setpointArray.z = placeArray[2];
 }
 
 void setAvailabilityStatus(std::string status)
 {
-    std_msgs::String availability_status;
-    std::stringstream ss_availability_status;
-    ss_availability_status << status;
-    availability_status.data = ss_availability_status.str();
+    std_msgs::String availabilityStatus;
+    std::stringstream ssAvailabilityStatus;
+    ssAvailabilityStatus << status;
+    availabilityStatus.data = ssAvailabilityStatus.str();
 
-    availability_pub.publish(availability_status);
+    availabilityPub.publish(availabilityStatus);
 }
 
 void setProgressStatus(std::string status)
 {
-    std_msgs::String progress_status;
-    std::stringstream ss_progress_status;
-    ss_progress_status << status;
-    progress_status.data = ss_progress_status.str();
+    std_msgs::String progressStatus;
+    std::stringstream ss_progressStatus;
+    ss_progressStatus << status;
+    progressStatus.data = ss_progressStatus.str();
 
-    progress_status_pub.publish(progress_status);
+    progressStatusPub.publish(progressStatus);
 }
 
 void senderLocationCallback(const std_msgs::String::ConstPtr &name)
 {
-    senderLocation = static_cast<std::string>(name->data.c_str());
-    // std::cout << "Sender loc: " << senderLocation << '\n';
+    senderLocation = name->data.c_str();
 }
 
 void receiverLocationCallback(const std_msgs::String::ConstPtr &name)
 {
-    receiverLocation = static_cast<std::string>(name->data.c_str());
-    // std::cout << "Reeceiver loc: " << receiverLocation << '\n';
-
+    receiverLocation = name->data.c_str();
 }
 
 void reachedSetpointCallback(const std_msgs::Bool::ConstPtr &value)
@@ -113,16 +85,15 @@ int main(int argc, char **argv)
 
     // Publish availability status
 
-    availability_pub = n.advertise<std_msgs::String>("availability",1000);
-    progress_status_pub = n.advertise<std_msgs::String>("progress",1000);
-
-    ros::Publisher setpoint_pub = n.advertise<geometry_msgs::Vector3>("setpoint",1000);
+    availabilityPub = n.advertise<std_msgs::String>("availability",1000);
+    progressStatusPub = n.advertise<std_msgs::String>("progress",1000);
+    setpointPub = n.advertise<geometry_msgs::Vector3>("setpoint",1000);
 
     ros::Subscriber senderLocationSub = n.subscribe("senderLocation",1000,senderLocationCallback);
     ros::Subscriber receiverLocationSub = n.subscribe("receiverLocation",1000,receiverLocationCallback);
     ros::Subscriber reachedSetpointSub = n.subscribe("reachedSetpointBool",10,reachedSetpointCallback);
 
-    ros::Rate loop_rate(10); 
+    ros::Rate loopRate(10); 
 
     while (ros::ok())
     {
@@ -161,18 +132,18 @@ int main(int argc, char **argv)
             }
 
             std::cout << "Setting setpoint to " << senderLocation << '\n';
-            setpoint_pub.publish(setpointsArray);
+            setpointPub.publish(setpointArray);
 
             if (loopCount1 == 0)
             {
                 sleep(2);
                 ++loopCount1;
                 ros::spinOnce();
-                loop_rate.sleep();
+                loopRate.sleep();
             }
             
             ros::spinOnce();
-            loop_rate.sleep();
+            loopRate.sleep();
 
             if (reachedSetpointBool)
             {
@@ -216,18 +187,18 @@ int main(int argc, char **argv)
 
             std::cout << "Seeting setpoint to " << receiverLocation << '\n';
 
-            setpoint_pub.publish(setpointsArray);
+            setpointPub.publish(setpointArray);
 
             if (loopCount == 0)
             {
                 sleep(2);
                 ++loopCount;
                 ros::spinOnce();
-                loop_rate.sleep();
+                loopRate.sleep();
             }
             
             ros::spinOnce();
-            loop_rate.sleep();
+            loopRate.sleep();
 
             if (reachedSetpointBool)
             {
@@ -235,7 +206,7 @@ int main(int argc, char **argv)
                 std::cout << "Seeting progress status to done\n";
                 setAvailabilityStatus("yes");
                 ros::spinOnce();
-                loop_rate.sleep();
+                loopRate.sleep();
                 sleep(2);
                 break;
             }
@@ -244,6 +215,6 @@ int main(int argc, char **argv)
         // break;
         sleep(2);
         ros::spinOnce();
-        loop_rate.sleep();
+        loopRate.sleep();
     }
 }
