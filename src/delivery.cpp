@@ -89,46 +89,26 @@ int main(int argc, char **argv)
     progressStatusPub = n.advertise<std_msgs::String>("progress",1000);
     setpointPub = n.advertise<geometry_msgs::Vector3>("setpoint",1000);
 
+    // Subscribers
     ros::Subscriber senderLocationSub = n.subscribe("senderLocation",1000,senderLocationCallback);
     ros::Subscriber receiverLocationSub = n.subscribe("receiverLocation",1000,receiverLocationCallback);
-    ros::Subscriber reachedSetpointSub = n.subscribe("reachedSetpointBool",10,reachedSetpointCallback);
+    ros::Subscriber reachedSetpointSub = n.subscribe("reachedSetpointBool",1000,reachedSetpointCallback);
 
     ros::Rate loopRate(10); 
 
     while (ros::ok())
     {
-        // std::cout << "reachedSetpointBool: " << reachedSetpointBool << '\n';
+        // Sender loop
+        int senderloopCount{0};
         while (ros::ok())
         {
-            int loopCount1{0};
+            bool foundSetpointBool{findSetpoint(senderLocation)};            
+            setpointPub.publish(setpointArray);
 
-            if (senderLocation.compare("Location A") == 0)
+            if (foundSetpointBool)
             {
-                assignSetpoint(placeA);
                 setAvailabilityStatus("no");
                 setProgressStatus("in progress");
-            }
-            else if (senderLocation.compare("Location B") == 0)
-            {
-                assignSetpoint(placeB);
-                setAvailabilityStatus("no");
-                setProgressStatus("in progress");
-            }
-            else if (senderLocation.compare("Location C") == 0)
-            {
-                assignSetpoint(placeC);
-                setAvailabilityStatus("no");
-                setProgressStatus("in progress");
-            }
-            else if (senderLocation.compare("Location D") == 0)
-            {
-                assignSetpoint(placeD);
-                setAvailabilityStatus("no");
-                setProgressStatus("in progress");
-            }
-            else
-            {
-                assignSetpoint(placeNil);
             }
 
             std::cout << "Setting setpoint to " << senderLocation << '\n';
@@ -147,45 +127,17 @@ int main(int argc, char **argv)
 
             if (reachedSetpointBool)
             {
-                std::cerr << "BREAKING SENDER LOOP\n";
+                ROS_INFO("Reached sender at %s",senderLocation.c_str());
                 break;
             }
         }
 
-        int loopCount{0};
-
+        // Receiver loop
+        int receiverloopCount{0};
         while (ros::ok())
         {
-            if (receiverLocation.compare("Location A") == 0)
-            {
-                assignSetpoint(placeA);
-                // setAvailabilityStatus("no");
-                // setProgressStatus("in progress");
-            }
-            else if (receiverLocation.compare("Location B") == 0)
-            {
-                assignSetpoint(placeB);
-                // setAvailabilityStatus("no");
-                // setProgressStatus("in progress");
-            }
-            else if (receiverLocation.compare("Location C") == 0)
-            {
-                assignSetpoint(placeC);
-                // setAvailabilityStatus("no");
-                // setProgressStatus("in progress");
-            }
-            else if (receiverLocation.compare("Location D") == 0)
-            {
-                assignSetpoint(placeD);
-                // setAvailabilityStatus("no");
-                // setProgressStatus("in progress");
-            }
-            else
-            {
-                assignSetpoint(placeNil);
-            }
-
-            std::cout << "Seeting setpoint to " << receiverLocation << '\n';
+            bool foundSetpointBool{findSetpoint(receiverLocation)};
+            setpointPub.publish(setpointArray);
 
             setpointPub.publish(setpointArray);
 
@@ -203,7 +155,6 @@ int main(int argc, char **argv)
             if (reachedSetpointBool)
             {
                 setProgressStatus("done");
-                std::cout << "Seeting progress status to done\n";
                 setAvailabilityStatus("yes");
                 ros::spinOnce();
                 loopRate.sleep();
@@ -212,8 +163,6 @@ int main(int argc, char **argv)
             }
         }
 
-        // break;
-        sleep(2);
         ros::spinOnce();
         loopRate.sleep();
     }
