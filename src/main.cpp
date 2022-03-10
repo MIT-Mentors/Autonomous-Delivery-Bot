@@ -128,7 +128,7 @@ void navigateToPoint(double setpoint[3])
 
     setVelocity(rightVelocity, leftVelocity);
 
-    double threshold {5.0};
+    double threshold {20.0};
 
     if (distanceError < threshold)
     {

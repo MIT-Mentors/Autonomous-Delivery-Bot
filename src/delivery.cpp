@@ -56,11 +56,38 @@ void setAvailabilityStatus(std::string status)
 void setProgressStatus(std::string status)
 {
     std_msgs::String progressStatus;
-    std::stringstream ss_progressStatus;
-    ss_progressStatus << status;
-    progressStatus.data = ss_progressStatus.str();
+    std::stringstream ssProgressStatus;
+    ssProgressStatus << status;
+    progressStatus.data = ssProgressStatus.str();
 
     progressStatusPub.publish(progressStatus);
+}
+
+bool findSetpoint(std::string location)
+{
+    if (location.compare("Location A") == 0)
+    {
+        assignSetpoint(placeA);
+    }
+    else if (location.compare("Location B") == 0)
+    {
+        assignSetpoint(placeB);
+    }
+    else if (location.compare("Location C") == 0)
+    {
+        assignSetpoint(placeC);
+    }
+    else if (location.compare("Location D") == 0)
+    {
+        assignSetpoint(placeD);
+    }
+    else
+    {
+        assignSetpoint(placeNil);
+        return 0;
+    }
+
+    return 1;
 }
 
 void senderLocationCallback(const std_msgs::String::ConstPtr &name)
@@ -89,19 +116,19 @@ int main(int argc, char **argv)
     progressStatusPub = n.advertise<std_msgs::String>("progress",1000);
     setpointPub = n.advertise<geometry_msgs::Vector3>("setpoint",1000);
 
-    // Subscribers
     ros::Subscriber senderLocationSub = n.subscribe("senderLocation",1000,senderLocationCallback);
     ros::Subscriber receiverLocationSub = n.subscribe("receiverLocation",1000,receiverLocationCallback);
-    ros::Subscriber reachedSetpointSub = n.subscribe("reachedSetpointBool",1000,reachedSetpointCallback);
+    ros::Subscriber reachedSetpointSub = n.subscribe("reachedSetpointBool",10,reachedSetpointCallback);
 
     ros::Rate loopRate(10); 
 
     while (ros::ok())
     {
         // Sender loop
-        int senderloopCount{0};
         while (ros::ok())
         {
+            int senderloopCount{0};
+
             bool foundSetpointBool{findSetpoint(senderLocation)};            
             setpointPub.publish(setpointArray);
 
@@ -111,44 +138,30 @@ int main(int argc, char **argv)
                 setProgressStatus("in progress");
             }
 
-            std::cout << "Setting setpoint to " << senderLocation << '\n';
-            setpointPub.publish(setpointArray);
+            std::cerr << "Setting setpoint to " << senderLocation << '\n';
 
-            if (loopCount1 == 0)
-            {
-                sleep(2);
-                ++loopCount1;
-                ros::spinOnce();
-                loopRate.sleep();
-            }
+            if (senderloopCount++ == 0) {sleep(2);}
             
             ros::spinOnce();
             loopRate.sleep();
 
             if (reachedSetpointBool)
             {
-                ROS_INFO("Reached sender at %s",senderLocation.c_str());
                 break;
             }
         }
 
-        // Receiver loop
         int receiverloopCount{0};
+
         while (ros::ok())
         {
             bool foundSetpointBool{findSetpoint(receiverLocation)};
             setpointPub.publish(setpointArray);
 
-            setpointPub.publish(setpointArray);
+            if (receiverloopCount++ == 0) {sleep(2);}
 
-            if (loopCount == 0)
-            {
-                sleep(2);
-                ++loopCount;
-                ros::spinOnce();
-                loopRate.sleep();
-            }
-            
+            std::cerr << "Seeting setpoint to " << receiverLocation << '\n';
+
             ros::spinOnce();
             loopRate.sleep();
 
@@ -156,13 +169,13 @@ int main(int argc, char **argv)
             {
                 setProgressStatus("done");
                 setAvailabilityStatus("yes");
-                ros::spinOnce();
-                loopRate.sleep();
-                sleep(2);
+                ROS_INFO("Reached receiver at %s",receiverLocation.c_str());
+                ROS_INFO("Completed delivery!");
                 break;
             }
         }
 
+        sleep(2);
         ros::spinOnce();
         loopRate.sleep();
     }
