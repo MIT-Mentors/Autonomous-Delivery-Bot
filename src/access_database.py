@@ -47,7 +47,7 @@ def main():
 	availabilityStatusSub = rospy.Subscriber("availability", String,setAvailabilityStatus)
 	progressStatusSub = rospy.Subscriber("progress", String,setProgressStatus)
 
-	rate = rospy.Rate(10) # 1Hz
+	rate = rospy.Rate(10) # 10Hz
 		
 	while not rospy.is_shutdown():
 

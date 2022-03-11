@@ -27,7 +27,7 @@ double lengthBtnWheels {0.8};
 double maxSpeed {20};
 
 double currLocation[3] {};
-double g_setpoint[3] {};
+double g_setpoint[3] {100000.0,100000.0,100000.0};
 
 ros::NodeHandle* nh; //pointer
 
@@ -114,8 +114,6 @@ void navigateToPoint(double setpoint[3])
     double phiErrorUncorrected {desiredYaw-yaw};
     double phiError {atan2(sin(phiErrorUncorrected),cos(phiErrorUncorrected))};
 
-    // std::cerr << phiError << '\n';
-
     double distanceError {findDistanceBetweenPoints(currLocation,setpoint)};
 
     // Unicycle angle and velocity
@@ -128,7 +126,7 @@ void navigateToPoint(double setpoint[3])
 
     setVelocity(rightVelocity, leftVelocity);
 
-    double threshold {20.0};
+    double threshold {5.0};
 
     if (distanceError < threshold)
     {
@@ -211,7 +209,7 @@ int main(int argc, char **argv)
 
     ros::Subscriber sub = n.subscribe("/model_name",1000,nameParserCallback);
 
-    while (gotRobotNameFlag == 0) {ros::spinOnce();}    // Wait unitl robot's name is received
+    while (gotRobotNameFlag == 0) {ros::spinOnce();}    // Wait unitl robot's name is received from the simulator
 
     initNavigation();
     enableGPS();

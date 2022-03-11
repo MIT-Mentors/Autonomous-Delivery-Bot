@@ -110,12 +110,12 @@ int main(int argc, char **argv)
     ros::init(argc,argv,"delivery");
     ros::NodeHandle n;
 
-    // Publish availability status
-
+    // Publishers
     availabilityPub = n.advertise<std_msgs::String>("availability",1000);
     progressStatusPub = n.advertise<std_msgs::String>("progress",1000);
     setpointPub = n.advertise<geometry_msgs::Vector3>("setpoint",1000);
 
+    // Subscribers
     ros::Subscriber senderLocationSub = n.subscribe("senderLocation",1000,senderLocationCallback);
     ros::Subscriber receiverLocationSub = n.subscribe("receiverLocation",1000,receiverLocationCallback);
     ros::Subscriber reachedSetpointSub = n.subscribe("reachedSetpointBool",10,reachedSetpointCallback);
@@ -125,10 +125,9 @@ int main(int argc, char **argv)
     while (ros::ok())
     {
         // Sender loop
+        int senderloopCount{0};
         while (ros::ok())
         {
-            int senderloopCount{0};
-
             bool foundSetpointBool{findSetpoint(senderLocation)};            
             setpointPub.publish(setpointArray);
 
@@ -137,8 +136,6 @@ int main(int argc, char **argv)
                 setAvailabilityStatus("no");
                 setProgressStatus("in progress");
             }
-
-            std::cerr << "Setting setpoint to " << senderLocation << '\n';
 
             if (senderloopCount++ == 0) {sleep(2);}
             
@@ -151,16 +148,14 @@ int main(int argc, char **argv)
             }
         }
 
+        // Receiver loop
         int receiverloopCount{0};
-
         while (ros::ok())
         {
             bool foundSetpointBool{findSetpoint(receiverLocation)};
             setpointPub.publish(setpointArray);
 
             if (receiverloopCount++ == 0) {sleep(2);}
-
-            std::cerr << "Seeting setpoint to " << receiverLocation << '\n';
 
             ros::spinOnce();
             loopRate.sleep();
@@ -171,6 +166,9 @@ int main(int argc, char **argv)
                 setAvailabilityStatus("yes");
                 ROS_INFO("Reached receiver at %s",receiverLocation.c_str());
                 ROS_INFO("Completed delivery!");
+                ros::spinOnce();
+                loopRate.sleep();
+                sleep(2);
                 break;
             }
         }

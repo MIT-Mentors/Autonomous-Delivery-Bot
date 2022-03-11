@@ -75,7 +75,15 @@ In another terimnal window execute the following command to run the webots simul
 roscd autonomous-delivery-bot
 webots worlds/city.wbt
 ```
+To access the database, in an another terminal execute  
+```
+rosrun autonomous-delivery-bot access_database.py
+```
+To run the main ros node, in an another terminal execute  
+```
+rosrun autonomous-delivery-bot main
+```
 To run the ros node, in an another terminal execute  
 ```
-rosrun autonomous-delivery-bot main.py
+rosrun autonomous-delivery-bot delivery
 ```
