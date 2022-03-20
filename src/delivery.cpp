@@ -23,10 +23,6 @@ std::string receiverLocation{};
 
 geometry_msgs::Vector3 setpointArray;
 
-ros::Publisher availabilityPub{};
-ros::Publisher progressStatusPub{};
-ros::Publisher setpointPub{};
-
 enum class ProgressStatus
 {
     done,
@@ -47,7 +43,7 @@ void assign_setpoint(double placeArray[3])
     setpointArray.z = placeArray[2];
 }
 
-void set_availability_status(std::vector <std::string> availabilityStatusOptions, AvailabilityStatus status)
+void set_availability_status(std::vector <std::string> availabilityStatusOptions, AvailabilityStatus status, ros::Publisher *availabilityPub)
 {
     
     std::stringstream strStreamAvailabilityStatus;
@@ -56,10 +52,10 @@ void set_availability_status(std::vector <std::string> availabilityStatusOptions
     std_msgs::String availabilityStatus;
     availabilityStatus.data = strStreamAvailabilityStatus.str();
 
-    availabilityPub.publish(availabilityStatus);
+    availabilityPub->publish(availabilityStatus);
 }
 
-void set_progress_status(std::vector<std::string> progressStatusOptions, ProgressStatus status)
+void set_progress_status(std::vector<std::string> progressStatusOptions, ProgressStatus status, ros::Publisher *progressStatusPub)
 {
     std::stringstream strStreamProgressStatus;
     strStreamProgressStatus << progressStatusOptions[static_cast<int>(status)];
@@ -67,7 +63,7 @@ void set_progress_status(std::vector<std::string> progressStatusOptions, Progres
     std_msgs::String progressStatus;
     progressStatus.data = strStreamProgressStatus.str();
 
-    progressStatusPub.publish(progressStatus);
+    progressStatusPub->publish(progressStatus);
 }
 
 bool find_setpoint(std::string location)
@@ -126,9 +122,9 @@ int main(int argc, char **argv)
     ros::NodeHandle n;
 
     // Publishers
-    availabilityPub = n.advertise<std_msgs::String>("availability", 1000);
-    progressStatusPub = n.advertise<std_msgs::String>("progress", 1000);
-    setpointPub = n.advertise<geometry_msgs::Vector3>("setpoint", 1000);
+    ros::Publisher availabilityPub = n.advertise<std_msgs::String>("availability", 1000);
+    ros::Publisher progressStatusPub = n.advertise<std_msgs::String>("progress", 1000);
+    ros::Publisher setpointPub = n.advertise<geometry_msgs::Vector3>("setpoint", 1000);
 
     // Subscribers
     ros::Subscriber senderLocationSub = n.subscribe("senderLocation", 1000, sender_location_callback);
@@ -150,8 +146,8 @@ int main(int argc, char **argv)
 
             if (isfoundSetpoint)
             {
-                set_availability_status(availabilityStatusOptions, AvailabilityStatus::no);
-                set_progress_status(progressStatusOptions, ProgressStatus::in_progress);
+                set_availability_status(availabilityStatusOptions, AvailabilityStatus::no, &availabilityPub);
+                set_progress_status(progressStatusOptions, ProgressStatus::in_progress, &progressStatusPub);
             }
 
             sleep(2);
@@ -160,6 +156,7 @@ int main(int argc, char **argv)
 
             if (isReachedSetPoint)
             {
+                ROS_INFO("Reached sender at %s", senderLocation.c_str());
                 break;
             }
         }
@@ -176,8 +173,8 @@ int main(int argc, char **argv)
 
             if (isReachedSetPoint)
             {
-                set_progress_status(progressStatusOptions, ProgressStatus::done);
-                set_availability_status(availabilityStatusOptions, AvailabilityStatus::yes);
+                set_progress_status(progressStatusOptions, ProgressStatus::done, &progressStatusPub);
+                set_availability_status(availabilityStatusOptions, AvailabilityStatus::yes, &availabilityPub);
                 ROS_INFO("Reached receiver at %s", receiverLocation.c_str());
                 ROS_INFO("Completed delivery!");
                 ros::spinOnce();

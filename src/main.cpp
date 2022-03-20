@@ -69,8 +69,6 @@ void setVelocity(ros::NodeHandle *nodehandle, double rightVelocity, double leftV
 {
     static const double maxSpeed {20};
 
-    std::cerr << rightVelocity << ' ' << leftVelocity << '\n'; 
-
     static webots_ros::set_float leftWheelSrv;
     static webots_ros::set_float rightWheelSrv;
 
