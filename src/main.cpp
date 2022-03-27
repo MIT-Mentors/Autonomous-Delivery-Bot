@@ -12,29 +12,99 @@
 #include <geometry_msgs/Vector3.h>
 #include <sensor_msgs/Imu.h>
 
-std::string robotName {};
-std::string senderLocation {};
-std::string receiverLocation {};
 
-int gotRobotNameFlag{0};
-double yaw {0.0};
-double currLocation[3] {};
-
-double findDistanceBetweenPoints(double point1[3], double point2[3])
+class Robot
 {
-    // Finding the distance between 2 points on a 2D plane using 
-    // the formula d = √((x_2-x_1)² + (y_2-y_1)²). 
-    // Here since the robot's x and z axes are parallel to the
-    // ground we use those coordinates to calculate the distance.
-    return sqrt((pow((point1[0]-point2[0]), 2)+pow((point1[2]-point2[2]), 2)));
-}
+public:
+    std::string m_robotName {};
+    int m_gotRobotNameFlag{0};
+    ros::Subscriber nameSub{};
 
-void nameParserCallback(const std_msgs::String::ConstPtr &model)
+    Robot(ros::NodeHandle* n)
+    {
+        nameSub = n->subscribe("/model_name", 1000, &Robot::name_parser_callback, this);
+    }
+
+    void name_parser_callback(const std_msgs::String::ConstPtr &model)
+    {
+        ROS_INFO("Robot Name: %s", model->data.c_str());
+        m_robotName = model->data.c_str();
+        m_gotRobotNameFlag = 1;
+    }
+};
+
+class Gps
 {
-    ROS_INFO("Robot Name: %s", model->data.c_str());
-    robotName = model->data.c_str();
-    gotRobotNameFlag = 1;
-}
+public:
+    ros::NodeHandle* m_nodehandle;
+    ros::Subscriber m_gpsSub{};
+    double m_currLocation[3] {};
+
+    Gps(ros::NodeHandle *n, Robot* robot)
+    {
+        // Enabling GPS
+        ros::ServiceClient gpsClient = n->serviceClient<webots_ros::set_int>(robot->m_robotName+"/gps/enable");
+        webots_ros::set_int gpsSrv;
+        gpsSrv.request.value = 1;
+
+        if (!gpsClient.call(gpsSrv) || !gpsSrv.response.success)
+        {
+            std::cout << "Failed to enable GPS\n";
+        }
+
+        m_gpsSub = n->subscribe(robot->m_robotName+"/gps/values", 1000, &Gps::GPS_callback, this);
+
+    }
+
+    void GPS_callback(const geometry_msgs::PointStamped::ConstPtr &values)
+    {    
+        m_currLocation[0] = values->point.x;
+        m_currLocation[1] = values->point.y;
+        m_currLocation[2] = values->point.z;
+    }
+};
+
+class Imu
+{
+public:
+    ros::NodeHandle* m_nodehandle{};
+    ros::Subscriber m_imuSub{};
+    double m_yaw {0.0};
+
+    Imu(ros::NodeHandle *n, Robot* robot)
+    {
+        // Enabling IMU
+        ros::ServiceClient imuClient = n->serviceClient<webots_ros::set_int>(robot->m_robotName+"/imu/enable");
+        webots_ros::set_int imuSrv;
+        imuSrv.request.value = 1;
+
+        if (!imuClient.call(imuSrv) || !imuSrv.response.success)
+        {
+            std::cout << "Failed to enable IMU\n";
+        }
+
+        m_imuSub = n->subscribe(robot->m_robotName+"/imu/quaternion", 1000, &Imu::IMU_callback, this);
+
+    }
+
+    void IMU_callback(const sensor_msgs::Imu::ConstPtr &data)
+    {
+        std::cerr << "IMU callback\n";
+        double q_x {data->orientation.x};       // q prefix stands for quaternion
+        double q_y {data->orientation.y};
+        double q_z {data->orientation.z};
+        double q_w {data->orientation.w};
+
+        // Calculating yaw using quaternion values
+        // Reference: https://stackoverflow.com/a/37560411
+
+        double q_z_sqr {q_z * q_z};
+        double t0 {-2.0 * (q_z_sqr + q_w * q_w) + 1.0};
+        double t1 {+2.0 * (q_y * q_z + q_x * q_w)};
+
+        m_yaw = atan2(t1, t0);
+    }
+};
 
 class SetPoint
 {
@@ -48,17 +118,17 @@ public:
     {
         m_nodehandle = n;
         m_reachedSetpointPub = n->advertise<std_msgs::Bool>("isReachedSetPoint", 1000);
-        m_setpointSub = n->subscribe("setpoint", 1, &SetPoint::setpointCallback, this);
+        m_setpointSub = n->subscribe("setpoint", 1, &SetPoint::setpoint_callback, this);
     }
 
-    void setpointCallback(const geometry_msgs::Vector3::ConstPtr &array)
+    void setpoint_callback(const geometry_msgs::Vector3::ConstPtr &array)
     {
         m_setpoint[0] = array->x;
         m_setpoint[1] = array->y;
         m_setpoint[2] = array->z;
     }
 
-    void publishSetpoint(int boolVal)
+    void publish_setpoint(int boolVal)
     {
         std_msgs::Bool value;
         value.data = boolVal;
@@ -66,195 +136,150 @@ public:
     }
 };
 
-void initNavigation(ros::NodeHandle *n)
+class Navigation
 {
-    //Setting position to infinity so that the bot can run forever.
-    double rightPos {INFINITY};
-    double leftPos {INFINITY};
+public:
+    ros::NodeHandle* m_nodehandle{};
+    webots_ros::set_float m_leftWheelSrv;
+    webots_ros::set_float m_rightWheelSrv;
+    const double m_maxSpeed {20};
 
-    static webots_ros::set_float leftWheelSrv;
-    static webots_ros::set_float rightWheelSrv;
+    ros::ServiceClient m_leftWheelPosClient{};
+    ros::ServiceClient m_rightWheelPosClient{};
+    ros::ServiceClient m_leftWheelVelClient{};
+    ros::ServiceClient m_rightWheelVelClient{};
 
-    static ros::ServiceClient leftWheelPosClient = n->serviceClient<webots_ros::set_float>(robotName+"/left_wheel_motor/set_position");
-    static ros::ServiceClient rightWheelPosClient = n->serviceClient<webots_ros::set_float>(robotName+"/right_wheel_motor/set_position");
-
-    leftWheelSrv.request.value = leftPos;
-    rightWheelSrv.request.value = rightPos;
-
-    if (!leftWheelPosClient.call(leftWheelSrv) || !rightWheelPosClient.call(rightWheelSrv) || !leftWheelSrv.response.success || !rightWheelSrv.response.success)
+    Navigation(ros::NodeHandle* n, Robot* robot)
     {
-        std::cout << "Failed to set position\n";
+        m_nodehandle = n;
+
+        m_leftWheelPosClient = n->serviceClient<webots_ros::set_float>(robot->m_robotName+"/left_wheel_motor/set_position");
+        m_rightWheelPosClient = n->serviceClient<webots_ros::set_float>(robot->m_robotName+"/right_wheel_motor/set_position");
+
+        m_leftWheelVelClient = n->serviceClient<webots_ros::set_float>(robot->m_robotName+"/left_wheel_motor/set_velocity");
+        m_rightWheelVelClient = n->serviceClient<webots_ros::set_float>(robot->m_robotName+"/right_wheel_motor/set_velocity");
     }
-}
 
-void setVelocity(ros::NodeHandle *n, double rightVelocity, double leftVelocity)
-{
-    static const double maxSpeed {20};
-
-    static webots_ros::set_float leftWheelSrv;
-    static webots_ros::set_float rightWheelSrv;
-
-    static ros::ServiceClient leftWheelClient = n->serviceClient<webots_ros::set_float>(robotName+"/left_wheel_motor/set_velocity");
-    static ros::ServiceClient rightWheelClient = n->serviceClient<webots_ros::set_float>(robotName+"/right_wheel_motor/set_velocity");
-
-    // Limiting velocities
-    if (rightVelocity > maxSpeed)
-        rightVelocity = maxSpeed;
-    if (leftVelocity > maxSpeed)
-        leftVelocity = maxSpeed;
-
-    if (rightVelocity < -maxSpeed)
-        rightVelocity = -maxSpeed;
-    if (leftVelocity < -maxSpeed)
-        leftVelocity = -maxSpeed;
-
-    rightWheelSrv.request.value = rightVelocity;
-    leftWheelSrv.request.value = leftVelocity;
-
-    if (!leftWheelClient.call(leftWheelSrv) || !rightWheelClient.call(rightWheelSrv) || !leftWheelSrv.response.success || !rightWheelSrv.response.success)
+    void init_navigation()
     {
-        std::cout << "Failed to set velocity\n";
+        //Setting position to infinity so that the bot can run forever.
+        double rightPos {INFINITY};
+        double leftPos {INFINITY};
+
+        m_leftWheelSrv.request.value = leftPos;
+        m_rightWheelSrv.request.value = rightPos;
+
+        if (!m_leftWheelPosClient.call(m_leftWheelSrv) || !m_rightWheelPosClient.call(m_rightWheelSrv) || !m_leftWheelSrv.response.success || !m_rightWheelSrv.response.success)
+        {
+            std::cout << "Failed to set position\n";
+        }
+
+        set_velocity(0.0, 0.0);
     }
-}
 
-void navigateToPoint(SetPoint* setpoint, ros::NodeHandle *n)
-{
-    static const double Kp {2};
-    static const double wheelRadius {0.165};
-    static const double lengthBtnWheels {0.8};
-
-    double xComponent {setpoint->m_setpoint[0] - currLocation[0]};
-    double yComponent {setpoint->m_setpoint[2] - currLocation[2]};
-
-    double desiredYaw {atan2(yComponent, xComponent)};
-
-    double phiErrorUncorrected {desiredYaw-yaw};
-    double phiError {atan2(sin(phiErrorUncorrected), cos(phiErrorUncorrected))};
-
-    double distanceError {findDistanceBetweenPoints(currLocation, setpoint->m_setpoint)};
-
-    // Unicycle angle and velocity
-    double unicycleAngle {distanceError*phiError};
-    double unicycleVelocity {Kp*distanceError};
-
-    // Differential drive velocities
-    double rightVelocity {(2.0*unicycleVelocity + unicycleAngle*lengthBtnWheels)/2.0*wheelRadius};
-    double leftVelocity  {(2.0*unicycleVelocity - unicycleAngle*lengthBtnWheels)/2.0*wheelRadius};
-
-    setVelocity(n, rightVelocity, leftVelocity);
-
-    static const double threshold {5.0};
-
-    if (distanceError < threshold)
+    void navigate_to_point(SetPoint* setpoint, Imu* imu, Gps* gps)
     {
-        setpoint->publishSetpoint(1);
+        static const double Kp {2};
+        static const double wheelRadius {0.165};
+        static const double lengthBtnWheels {0.8};
+
+        double xComponent {setpoint->m_setpoint[0] - gps->m_currLocation[0]};
+        double yComponent {setpoint->m_setpoint[2] - gps->m_currLocation[2]};
+
+        double desiredYaw {atan2(yComponent, xComponent)};
+
+        double phiErrorUncorrected {desiredYaw-imu->m_yaw};
+        double phiError {atan2(sin(phiErrorUncorrected), cos(phiErrorUncorrected))};
+
+        double distanceError {find_distance_between_points(gps->m_currLocation, setpoint->m_setpoint)};
+
+        // Unicycle angle and velocity
+        double unicycleAngle {distanceError*phiError};
+        double unicycleVelocity {Kp*distanceError};
+
+        // Differential drive velocities
+        double rightVelocity {(2.0*unicycleVelocity + unicycleAngle*lengthBtnWheels)/2.0*wheelRadius};
+        double leftVelocity  {(2.0*unicycleVelocity - unicycleAngle*lengthBtnWheels)/2.0*wheelRadius};
+
+        set_velocity(rightVelocity, leftVelocity);
+
+        static const double threshold {5.0};
+
+        if (distanceError < threshold)
+        {
+            setpoint->publish_setpoint(1);
+        }
+        else
+        {
+            setpoint->publish_setpoint(0);
+        }
     }
-    else
+
+    void set_velocity(double rightVelocity, double leftVelocity)
     {
-        setpoint->publishSetpoint(0);
+        // Limiting velocities
+        if (rightVelocity > m_maxSpeed)
+            rightVelocity = m_maxSpeed;
+        if (leftVelocity > m_maxSpeed)
+            leftVelocity = m_maxSpeed;
+
+        if (rightVelocity < -m_maxSpeed)
+            rightVelocity = -m_maxSpeed;
+        if (leftVelocity < -m_maxSpeed)
+            leftVelocity = -m_maxSpeed;
+
+        m_rightWheelSrv.request.value = rightVelocity;
+        m_leftWheelSrv.request.value = leftVelocity;
+
+        if (!m_leftWheelVelClient.call(m_leftWheelSrv) || !m_rightWheelVelClient.call(m_rightWheelSrv) || !m_leftWheelSrv.response.success || !m_rightWheelSrv.response.success)
+        {
+            std::cout << "Failed to set velocity\n";
+        }
     }
-}
 
-void senderLocationCallback(const std_msgs::String::ConstPtr &name)
-{
-    senderLocation = name->data.c_str();
-}
-
-void receiverLocationCallback(const std_msgs::String::ConstPtr &name)
-{
-    receiverLocation = name->data.c_str();
-}
-
-void enableGPS(ros::NodeHandle *n)
-{
-    ros::ServiceClient gpsClient = n->serviceClient<webots_ros::set_int>(robotName+"/gps/enable");
-    webots_ros::set_int gpsSrv;
-    gpsSrv.request.value = 1;
-
-    if (!gpsClient.call(gpsSrv) || !gpsSrv.response.success)
+    double find_distance_between_points(double point1[3], double point2[3])
     {
-        std::cout << "Failed to enable GPS\n";
+        // Finding the distance between 2 points on a 2D plane using 
+        // the formula d = √((x_2-x_1)² + (y_2-y_1)²). 
+        // Here since the robot's x and z axes are parallel to the
+        // ground we use those coordinates to calculate the distance.
+        return sqrt((pow((point1[0]-point2[0]), 2)+pow((point1[2]-point2[2]), 2)));
     }
-}
-
-void enableIMU(ros::NodeHandle *n)
-{
-    ros::ServiceClient imuClient = n->serviceClient<webots_ros::set_int>(robotName+"/imu/enable");
-    webots_ros::set_int imuSrv;
-    imuSrv.request.value = 1;
-
-    if (!imuClient.call(imuSrv) || !imuSrv.response.success)
-    {
-        std::cout << "Failed to enable IMU\n";
-    }
-}
-
-void GPSCallback(const geometry_msgs::PointStamped::ConstPtr &values)
-{    
-    currLocation[0] = values->point.x;
-    currLocation[1] = values->point.y;
-    currLocation[2] = values->point.z;
-}
-
-void IMUCallback(const sensor_msgs::Imu::ConstPtr &data)
-{
-    double q_x {data->orientation.x};       // q prefix stands for quaternion
-    double q_y {data->orientation.y};
-    double q_z {data->orientation.z};
-    double q_w {data->orientation.w};
-
-    // Calculating yaw using quaternion values
-    // Reference: https://stackoverflow.com/a/37560411
-
-    double q_z_sqr {q_z * q_z};
-    double t0 {-2.0 * (q_z_sqr + q_w * q_w) + 1.0};
-    double t1 {+2.0 * (q_y * q_z + q_x * q_w)};
-
-    yaw = atan2(t1, t0);
-}
+};
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "main");
     ros::NodeHandle n;
 
-    ros::Subscriber sub = n.subscribe("/model_name", 1000, nameParserCallback);
+    Robot robot{&n};
 
-    while (gotRobotNameFlag == 0)
+    while (robot.m_gotRobotNameFlag == 0)
     {
         ros::spinOnce();    // Wait unitl robot's name is received from the simulator
     }
 
-    initNavigation(&n);
-    enableGPS(&n);
-    enableIMU(&n);
-
-    setVelocity(&n, 0.0, 0.0);
-
+    Navigation navigation{&n, &robot};
+    Gps gps{&n, &robot};
+    Imu imu{&n, &robot};
     SetPoint setpoint{&n};
 
-    // Publishers
+    navigation.init_navigation();
 
-    // Subscribers
-    ros::Subscriber gpsSub = n.subscribe(robotName+"/gps/values", 1000, GPSCallback);
-    ros::Subscriber imuSub = n.subscribe(robotName+"/imu/quaternion", 1000, IMUCallback);
-    ros::Subscriber senderLocationSub = n.subscribe("senderLocation", 1000, senderLocationCallback);
-    ros::Subscriber receiverLocationSub = n.subscribe("receiverLocation", 1000, receiverLocationCallback);
-    
     ros::Rate loop_rate(10); //10 Hz
 
     while (ros::ok())
     {
-        if ((senderLocation.compare("nil") != 0) && (receiverLocation.compare("nil") !=0) && setpoint.m_setpoint[0] != 100000.0)     //if both are not nill and setpoint has set, then true
+        if (setpoint.m_setpoint[0] != 100000.0)     //if both are not nill and setpoint has set, then true
         {
-            navigateToPoint(&setpoint, &n);
+            navigation.navigate_to_point(&setpoint, &imu, &gps);
             loop_rate.sleep();
         }
         else
         {
-            setVelocity(&n,0.0, 0.0);
+            navigation.set_velocity(0.0, 0.0);
 
-            setpoint.publishSetpoint(0);
+            setpoint.publish_setpoint(0);
         }
         
         ros::spinOnce();
