@@ -67,14 +67,12 @@ class SetPoint
 {
 public:
     bool m_isReachedSetPoint{0};  
-    ros::NodeHandle* m_nodehandle{};
     ros::Publisher m_setpointPub{};
     ros::Subscriber m_reachedSetpointSub{};
     geometry_msgs::Vector3 setpointArray{};
 
     SetPoint(ros::NodeHandle* n)
     {
-        m_nodehandle = n;
         m_setpointPub = n->advertise<geometry_msgs::Vector3>("setpoint", 1000);
         m_reachedSetpointSub = n->subscribe("isReachedSetPoint", 10, &SetPoint::reached_setpoint_callback, this);
     }
@@ -132,15 +130,12 @@ public:
 class BotAvailability
 {
 public:
-    ros::NodeHandle* m_nodehandle{};
     ros::Publisher m_availabilityPub{};
-    std::vector<std::string> m_availabilityStatusOptions{};
+    std::vector<std::string> m_availabilityStatusOptions{"yes", "no"};
 
     BotAvailability(ros::NodeHandle* n)
     {
-        m_nodehandle = n;
         m_availabilityPub = n->advertise<std_msgs::String>("availability", 1000);
-        m_availabilityStatusOptions = {"yes", "no"};
     }
 
     void set_availability_status(AvailabilityStatusOptions status)
@@ -158,15 +153,12 @@ public:
 class ProgressStatus
 {
 public:
-    ros::NodeHandle* m_nodehandle{};
     ros::Publisher m_progressStatusPub{};
-    std::vector<std::string> m_progressStatusOptions{};
+    std::vector<std::string> m_progressStatusOptions{"done", "in progress", "none"};
 
     ProgressStatus(ros::NodeHandle* n)
     {
-        m_nodehandle = n;
         m_progressStatusPub = n->advertise<std_msgs::String>("progress", 1000);
-        m_progressStatusOptions = {"done", "in progress", "none"};
     }
 
     void set_progress_status(ProgressStatusOptions status)

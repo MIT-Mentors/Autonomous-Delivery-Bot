@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import rospy
-
 from firebase import firebase
 from std_msgs.msg import String
 
