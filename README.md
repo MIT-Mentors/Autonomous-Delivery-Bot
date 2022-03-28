@@ -14,14 +14,14 @@ Webots is a free and open-source 3D robot simulator.<br />
 Version used: 2021a
 
 #### Installation procedure
-1. Download **webots_2021a_amd64.deb** from [here.](https://github.com/cyberbotics/webots/releases/tag/R2021a)
+1. Download **webots_2021a_amd64.deb** from [here.](https://github.com/cyberbotics/webots/releases/download/R2021a/webots_2021a_amd64.deb)
 2. In the terminal execute  
     ```
     sudo apt install ./webots_2022a_amd64.deb
     ```
 
 ## Setting up a local repository
-1. Create a ros package in the catkin workspace
+1. Create a ROS package in the catkin workspace
     ```
     cd ~/<catkin_workspace_name>/src
     ```
@@ -50,7 +50,7 @@ Make sure you have configured git using the commands.
     git add .
     ```
     ```
-    git commit -m "Created ros package" .
+    git commit -m "Created ROS package" .
     ```
     Rename master branch to main
     ```
@@ -79,11 +79,11 @@ To access the database, in an another terminal execute
 ```
 rosrun autonomous-delivery-bot access_database.py
 ```
-To run the main ros node, in an another terminal execute  
+To run the main ROS node, in an another terminal execute  
 ```
 rosrun autonomous-delivery-bot main
 ```
-To run the ros node, in an another terminal execute  
+To run the delivery ROS node, in an another terminal execute  
 ```
 rosrun autonomous-delivery-bot delivery
 ```
