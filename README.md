@@ -21,7 +21,7 @@ Version used: 2021a
     ```
 
 ## Setting up a local repository
-1. Create a ros package in the catkin workspace
+1. Create a ROS package in the catkin workspace
     ```
     cd ~/<catkin_workspace_name>/src
     ```
@@ -50,7 +50,7 @@ Make sure you have configured git using the commands.
     git add .
     ```
     ```
-    git commit -m "Created ros package" .
+    git commit -m "Created ROS package" .
     ```
     Rename master branch to main
     ```
@@ -75,7 +75,15 @@ In another terimnal window execute the following command to run the webots simul
 roscd autonomous-delivery-bot
 webots worlds/city.wbt
 ```
-To run the ros node, in an another terminal execute  
+To access the database, in an another terminal execute  
 ```
-rosrun autonomous-delivery-bot main.py
+rosrun autonomous-delivery-bot access_database.py
+```
+To run the main ROS node, in an another terminal execute  
+```
+rosrun autonomous-delivery-bot main
+```
+To run the delivery ROS node, in an another terminal execute  
+```
+rosrun autonomous-delivery-bot delivery
 ```
