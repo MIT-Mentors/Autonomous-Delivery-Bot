@@ -199,7 +199,7 @@ int main(int argc, char **argv)
                 progressStatus.set_progress_status(ProgressStatusOptions::in_progress);
             }
 
-            sleep(2);
+            sleep(2);   // Small wait in code to compensate for delay in data transmission
             ros::spinOnce();
             loopRate.sleep();
 
