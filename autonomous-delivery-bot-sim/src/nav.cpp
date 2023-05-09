@@ -118,7 +118,10 @@ int main(int argc, char **argv)
     ros::Publisher way_pts_pub = n.advertise<nav_msgs::Path>("/waypoints_input",1000);
     ros::Publisher ext_speed_pub = n.advertise<std_msgs::Float64>("/waypoints_input",1000);
 
-    ext_speed_pub.publish(20);
+    std_msgs::Float64 ext_speed;
+    ext_speed.data = 20.0;
+    ext_speed_pub.publish(ext_speed);
+    
     nav_msgs::Path way_pts;     // Need to hard code this for testing purpose
     nav_msgs::Odometry abs_pose;
 
