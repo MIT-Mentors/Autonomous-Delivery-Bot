@@ -1,4 +1,5 @@
 #include <iostream>
+# include <vector>
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
 #include "std_msgs/String.h"
@@ -6,6 +7,7 @@
 #include <webots_ros/set_int.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Float64.h>
 
@@ -116,19 +118,40 @@ int main(int argc, char **argv)
 
     ros::Publisher abs_pose_pub = n.advertise<nav_msgs::Odometry>("/absolute_pose",1000);
     ros::Publisher way_pts_pub = n.advertise<nav_msgs::Path>("/waypoints_input",1000);
-    ros::Publisher ext_speed_pub = n.advertise<std_msgs::Float64>("/waypoints_input",1000);
+    ros::Publisher ext_speed_pub = n.advertise<std_msgs::Float64>("/external_speed",1000);
 
     std_msgs::Float64 ext_speed;
     ext_speed.data = 20.0;
     ext_speed_pub.publish(ext_speed);
-    
+
     nav_msgs::Path way_pts;     // Need to hard code this for testing purpose
+    // Hardcoded waypoints = (-44.7, 0, 30.5), (-42.4, 0, 42.29), (-25.8, 0, 44), (-5.4, 0, 49.1)
+    
+    geometry_msgs::PoseStamped posestamp;
+
+    posestamp.pose.position.x = -44.7;
+    posestamp.pose.position.y = 30.5;
+    posestamp.pose.position.z = 0.0;
+    posestamp.pose.orientation.x = 0.0;
+    posestamp.pose.orientation.y = 0.0;
+    posestamp.pose.orientation.z = 0.0;
+    
+    way_pts.poses.push_back(posestamp);
+    // way_pts.poses[1].pose.position.x = -42.4;
+    // way_pts.poses[1].pose.position.y = 42.29;
+    // way_pts.poses[2].pose.position.x = -25.8;
+    // way_pts.poses[2].pose.position.y = 44.0;
+    // way_pts.poses[3].pose.position.x = -5.4;
+    // way_pts.poses[3].pose.position.y = 49.1;
+
+    way_pts_pub.publish(way_pts);
+
     nav_msgs::Odometry abs_pose;
 
     while (ros::ok())
     {
-        abs_pose.pose.pose.position.x = gps.m_currLocation[0];
-        abs_pose.pose.pose.position.y = gps.m_currLocation[1];
+        abs_pose.pose.pose.position.x = gps.m_currLocation[0];  // X axis and Z axis are parallel to the ground in Webots
+        abs_pose.pose.pose.position.y = gps.m_currLocation[2];
         abs_pose_pub.publish(abs_pose);
     }
 
