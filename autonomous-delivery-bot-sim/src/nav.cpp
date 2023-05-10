@@ -57,11 +57,12 @@ public:
         }
 
         m_gpsSub = n->subscribe(robot->m_name+"/gps/values", 1000, &Gps::GPS_callback, this);
+        std::cout << "Initialized gps\n";
 
     }
 
     void GPS_callback(const geometry_msgs::PointStamped::ConstPtr &values)
-    {    
+    {   
         m_currLocation[0] = values->point.x;
         m_currLocation[1] = values->point.y;
         m_currLocation[2] = values->point.z;
@@ -122,11 +123,11 @@ int main(int argc, char **argv)
 
     std_msgs::Float64 ext_speed;
     ext_speed.data = 20.0;
-    ext_speed_pub.publish(ext_speed);
 
+    // Prepping waypoint data to be published for waypoint tracking controller package 
     nav_msgs::Path way_pts;     // Need to hard code this for testing purpose
-    // Hardcoded waypoints = (-44.7, 0, 30.5), (-42.4, 0, 42.29), (-25.8, 0, 44), (-5.4, 0, 49.1)
     
+    // Hardcoded waypoints = (-44.7, 0, 30.5), (-42.4, 0, 42.29), (-25.8, 0, 44), (-5.4, 0, 49.1)
     geometry_msgs::PoseStamped posestamp;
 
     posestamp.pose.position.x = -44.7;
@@ -135,16 +136,35 @@ int main(int argc, char **argv)
     posestamp.pose.orientation.x = 0.0;
     posestamp.pose.orientation.y = 0.0;
     posestamp.pose.orientation.z = 0.0;
-    
-    way_pts.poses.push_back(posestamp);
-    // way_pts.poses[1].pose.position.x = -42.4;
-    // way_pts.poses[1].pose.position.y = 42.29;
-    // way_pts.poses[2].pose.position.x = -25.8;
-    // way_pts.poses[2].pose.position.y = 44.0;
-    // way_pts.poses[3].pose.position.x = -5.4;
-    // way_pts.poses[3].pose.position.y = 49.1;
 
-    way_pts_pub.publish(way_pts);
+    way_pts.poses.push_back(posestamp);
+
+    posestamp.pose.position.x = -42.4;
+    posestamp.pose.position.y = 42.29;
+    posestamp.pose.position.z = 0.0;
+    posestamp.pose.orientation.x = 0.0;
+    posestamp.pose.orientation.y = 0.0;
+    posestamp.pose.orientation.z = 0.0;
+
+    way_pts.poses.push_back(posestamp);
+
+    posestamp.pose.position.x = -25.8;
+    posestamp.pose.position.y = 44;
+    posestamp.pose.position.z = 0.0;
+    posestamp.pose.orientation.x = 0.0;
+    posestamp.pose.orientation.y = 0.0;
+    posestamp.pose.orientation.z = 0.0;
+
+    way_pts.poses.push_back(posestamp);
+
+    posestamp.pose.position.x = -5.4;
+    posestamp.pose.position.y = 49.1;
+    posestamp.pose.position.z = 0.0;
+    posestamp.pose.orientation.x = 0.0;
+    posestamp.pose.orientation.y = 0.0;
+    posestamp.pose.orientation.z = 0.0;
+
+    way_pts.poses.push_back(posestamp);
 
     nav_msgs::Odometry abs_pose;
 
@@ -152,9 +172,15 @@ int main(int argc, char **argv)
     {
         abs_pose.pose.pose.position.x = gps.m_currLocation[0];  // X axis and Z axis are parallel to the ground in Webots
         abs_pose.pose.pose.position.y = gps.m_currLocation[2];
+
         abs_pose_pub.publish(abs_pose);
+
+        ext_speed_pub.publish(ext_speed);
+        way_pts_pub.publish(way_pts);
+
+        ros::spinOnce();
+        loopRate.sleep();
     }
 
-    ros::spinOnce();
-    loopRate.sleep();
+    
 }
