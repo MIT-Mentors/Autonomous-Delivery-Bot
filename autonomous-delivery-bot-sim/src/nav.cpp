@@ -1,5 +1,6 @@
 #include <iostream>
 # include <vector>
+#include <ros/time.h>
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
 #include "std_msgs/String.h"
@@ -10,6 +11,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Float64.h>
+#include <std_msgs/Header.h>
 
 #include "nav_msgs/Path.h"
 #include "nav_msgs/Odometry.h"
@@ -126,6 +128,9 @@ int main(int argc, char **argv)
 
     // Prepping waypoint data to be published for waypoint tracking controller package 
     nav_msgs::Path way_pts;     // Need to hard code this for testing purpose
+
+    // ros::Time way_pts_time;
+    way_pts.header.frame_id = "way_pts";
     
     // Hardcoded waypoints = (-44.7, 0, 30.5), (-42.4, 0, 42.29), (-25.8, 0, 44), (-5.4, 0, 49.1)
     geometry_msgs::PoseStamped posestamp;
@@ -136,7 +141,9 @@ int main(int argc, char **argv)
     posestamp.pose.orientation.x = 0.0;
     posestamp.pose.orientation.y = 0.0;
     posestamp.pose.orientation.z = 0.0;
+    posestamp.pose.orientation.w = 1.0;
 
+    way_pts.header.stamp = ros::Time::now();
     way_pts.poses.push_back(posestamp);
 
     posestamp.pose.position.x = -42.4;
@@ -145,7 +152,9 @@ int main(int argc, char **argv)
     posestamp.pose.orientation.x = 0.0;
     posestamp.pose.orientation.y = 0.0;
     posestamp.pose.orientation.z = 0.0;
+    posestamp.pose.orientation.w = 1.0;
 
+    way_pts.header.stamp = ros::Time::now();
     way_pts.poses.push_back(posestamp);
 
     posestamp.pose.position.x = -25.8;
@@ -154,7 +163,9 @@ int main(int argc, char **argv)
     posestamp.pose.orientation.x = 0.0;
     posestamp.pose.orientation.y = 0.0;
     posestamp.pose.orientation.z = 0.0;
+    posestamp.pose.orientation.w = 1.0;
 
+    way_pts.header.stamp = ros::Time::now();
     way_pts.poses.push_back(posestamp);
 
     posestamp.pose.position.x = -5.4;
@@ -163,7 +174,9 @@ int main(int argc, char **argv)
     posestamp.pose.orientation.x = 0.0;
     posestamp.pose.orientation.y = 0.0;
     posestamp.pose.orientation.z = 0.0;
+    posestamp.pose.orientation.w = 1.0;
 
+    way_pts.header.stamp = ros::Time::now();
     way_pts.poses.push_back(posestamp);
 
     nav_msgs::Odometry abs_pose;
@@ -171,9 +184,10 @@ int main(int argc, char **argv)
     while (ros::ok())
     {
         abs_pose.pose.pose.position.x = gps.m_currLocation[0];  // X axis and Z axis are parallel to the ground in Webots
-        abs_pose.pose.pose.position.y = gps.m_currLocation[2];
+        abs_pose.pose.pose.position.y = gps.m_currLocation[2];  
+        abs_pose.pose.pose.orientation.w = 1.0;
 
-        abs_pose_pub.publish(abs_pose);
+        abs_pose_pub.publish(abs_pose);         // Causes prblm in TF
 
         ext_speed_pub.publish(ext_speed);
         way_pts_pub.publish(way_pts);
