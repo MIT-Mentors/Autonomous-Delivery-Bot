@@ -20,6 +20,9 @@
 #include "geometry_msgs/Point.h"
 #include <visualization_msgs/Marker.h>
 
+double speed = 0.0;
+double steer = 0.0;
+
 class Robot
 {
 public:
@@ -76,6 +79,10 @@ class Imu
 public:
     ros::Subscriber m_imuSub{};
     double m_yaw {0.0};
+    double q_x;       // q prefix stands for quaternion
+    double q_y;
+    double q_z;
+    double q_w;
 
     Imu(ros::NodeHandle* n, Robot* robot)
     {
@@ -95,12 +102,144 @@ public:
 
     void IMU_callback(const sensor_msgs::Imu::ConstPtr &data)
     {
-        double q_x {data->orientation.x};       // q prefix stands for quaternion
-        double q_y {data->orientation.y};
-        double q_z {data->orientation.z};
-        double q_w {data->orientation.w};
+        q_x = data->orientation.x;       // q prefix stands for quaternion
+        q_y = data->orientation.y;
+        q_z = data->orientation.z;
+        q_w = data->orientation.w;
+
+        double q_z_sqr {q_z * q_z};
+        double t0 {-2.0 * (q_z_sqr + q_w * q_w) + 1.0};
+        double t1 {+2.0 * (q_y * q_z + q_x * q_w)};
+
+        m_yaw = atan2(t1, t0);
+
+        std::cout << "yaw "<< m_yaw << '\n';
     }
 };
+
+class Navigation
+{
+public:
+    const double m_maxSpeed {20};
+    const double wheelRadius {0.165};
+    const double lengthBtnWheels {0.8};
+
+    webots_ros::set_float m_leftWheelSrv;
+    webots_ros::set_float m_rightWheelSrv;
+
+    ros::ServiceClient m_leftWheelPosClient{};
+    ros::ServiceClient m_rightWheelPosClient{};
+    ros::ServiceClient m_leftWheelVelClient{};
+    ros::ServiceClient m_rightWheelVelClient{};
+
+    Navigation(ros::NodeHandle* n, Robot* robot)
+    {
+        m_leftWheelPosClient = n->serviceClient<webots_ros::set_float>(robot->m_name+"/left_wheel_motor/set_position");
+        m_rightWheelPosClient = n->serviceClient<webots_ros::set_float>(robot->m_name+"/right_wheel_motor/set_position");
+
+        m_leftWheelVelClient = n->serviceClient<webots_ros::set_float>(robot->m_name+"/left_wheel_motor/set_velocity");
+        m_rightWheelVelClient = n->serviceClient<webots_ros::set_float>(robot->m_name+"/right_wheel_motor/set_velocity");
+    
+        //Setting position to infinity so that the bot can run forever.
+        double rightPos {INFINITY};
+        double leftPos {INFINITY};
+
+        m_leftWheelSrv.request.value = leftPos;
+        m_rightWheelSrv.request.value = rightPos;
+
+        if (!m_leftWheelPosClient.call(m_leftWheelSrv) || !m_rightWheelPosClient.call(m_rightWheelSrv) || !m_leftWheelSrv.response.success || !m_rightWheelSrv.response.success)
+        {
+            std::cout << "Failed to set position\n";
+        }
+
+        set_velocity(0.0, 0.0);
+    }
+
+    void navigate_to_point(Imu* imu)
+    {
+        // static const double Kp {2};
+
+        // The robot's x and z axes are parallel to the ground
+        // double xComponent {setpoint->m_setpoint[0] - gps->m_currLocation[0]};
+        // double zComponent {setpoint->m_setpoint[2] - gps->m_currLocation[2]};
+
+        double desiredYaw = steer;
+
+        double phiErrorUncorrected {desiredYaw - imu->m_yaw};
+        double phiError {atan2(sin(phiErrorUncorrected), cos(phiErrorUncorrected))};
+
+        // double distanceError {find_distance_between_points(gps->m_currLocation, setpoint->m_setpoint)};
+
+        // Unicycle angle and velocity
+
+
+        // double unicycleAngle = steer_callback;  //steer
+        // double unicycleVelocity {0.0};     //speed
+
+        // Differential drive velocities
+        double rightVelocity {(2.0*speed + phiError*lengthBtnWheels)/2.0*wheelRadius};
+        double leftVelocity  {(2.0*speed - phiError*lengthBtnWheels)/2.0*wheelRadius};
+
+        set_velocity(rightVelocity, leftVelocity);
+
+        // static const double threshold {5.0};
+
+        // if (distanceError < threshold)
+        // {
+        //     setpoint->publish_setpoint(1);
+        // }
+        // else
+        // {
+        //     setpoint->publish_setpoint(0);
+        // }
+    }
+
+    void set_velocity(double rightVelocity, double leftVelocity)
+    {
+        // Limiting velocities
+        if (rightVelocity > m_maxSpeed)
+            rightVelocity = m_maxSpeed;
+        if (leftVelocity > m_maxSpeed)
+            leftVelocity = m_maxSpeed;
+
+        if (rightVelocity < -m_maxSpeed)
+            rightVelocity = -m_maxSpeed;
+        if (leftVelocity < -m_maxSpeed)
+            leftVelocity = -m_maxSpeed;
+
+        // std::cout << rightVelocity << ' ' << leftVelocity << '\n';
+
+        m_rightWheelSrv.request.value = rightVelocity;
+        m_leftWheelSrv.request.value = leftVelocity;
+
+        if (!m_leftWheelVelClient.call(m_leftWheelSrv) || !m_rightWheelVelClient.call(m_rightWheelSrv) || !m_leftWheelSrv.response.success || !m_rightWheelSrv.response.success)
+        {
+            std::cout << "Failed to set velocity\n";
+        }
+    }
+
+    // double find_distance_between_points(double point1[3], double point2[3])
+    // {
+    //     // Finding the distance between 2 points on a 2D plane using 
+    //     // the formula d = √((x_2-x_1)² + (y_2-y_1)²). 
+    //     // Here since the robot's x and z axes are parallel to the
+    //     // ground we use those coordinates to calculate the distance.
+    //     return sqrt((pow((point1[0]-point2[0]), 2)+pow((point1[2]-point2[2]), 2)));
+    // }
+};
+
+
+void speed_callback(const std_msgs::Float64::ConstPtr& msg)
+{
+    speed = msg->data;
+    // std::cout << speed << ' ';
+}
+
+void steer_callback(const std_msgs::Float64::ConstPtr& msg)
+{
+    steer = msg->data;
+    // std::cout << speed << ' ';
+}
 
 int main(int argc, char **argv)
 {
@@ -116,6 +255,7 @@ int main(int argc, char **argv)
 
     Gps gps{&n, &robot};
     Imu imu{&n, &robot};
+    Navigation nav{&n,&robot};
 
     ros::Rate loopRate(10);
 
@@ -124,13 +264,13 @@ int main(int argc, char **argv)
     ros::Publisher ext_speed_pub = n.advertise<std_msgs::Float64>("/external_speed",1000);
 
     std_msgs::Float64 ext_speed;
-    ext_speed.data = 20.0;
+    ext_speed.data = 50.0;
 
     // Prepping waypoint data to be published for waypoint tracking controller package 
     nav_msgs::Path way_pts;     // Need to hard code this for testing purpose
 
     // ros::Time way_pts_time;
-    way_pts.header.frame_id = "way_pts";
+    way_pts.header.frame_id = "map";
     
     // Hardcoded waypoints = (-44.7, 0, 30.5), (-42.4, 0, 42.29), (-25.8, 0, 44), (-5.4, 0, 49.1)
     geometry_msgs::PoseStamped posestamp;
@@ -181,17 +321,29 @@ int main(int argc, char **argv)
 
     nav_msgs::Odometry abs_pose;
 
+    ros::Subscriber speed_sub = n.subscribe("/speed",1,speed_callback);
+    ros::Subscriber steer_sub = n.subscribe("/steer",1,steer_callback);
+
+    abs_pose.header.frame_id = "map";
+
     while (ros::ok())
     {
         abs_pose.pose.pose.position.x = gps.m_currLocation[0];  // X axis and Z axis are parallel to the ground in Webots
-        abs_pose.pose.pose.position.y = gps.m_currLocation[2];  
-        abs_pose.pose.pose.orientation.w = 1.0;
+        abs_pose.pose.pose.position.y = gps.m_currLocation[2];
+        abs_pose.pose.pose.orientation.x = imu.q_x;
+        abs_pose.pose.pose.orientation.y = imu.q_y;
+        abs_pose.pose.pose.orientation.z = imu.q_z;
+        abs_pose.pose.pose.orientation.w = imu.q_w;
 
         abs_pose_pub.publish(abs_pose);         // Causes prblm in TF
 
         ext_speed_pub.publish(ext_speed);
         way_pts_pub.publish(way_pts);
 
+        nav.navigate_to_point(&imu);
+
+        // std::cout << imu.q_x << ' ';
+ 
         ros::spinOnce();
         loopRate.sleep();
     }
