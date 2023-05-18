@@ -1,5 +1,6 @@
 #include <iostream>
 # include <vector>
+#include <cmath>
 #include <ros/time.h>
 #include "ros/ros.h"
 #include "std_msgs/Bool.h"
@@ -22,6 +23,9 @@
 
 double speed = 0.0;
 double steer = 0.0;
+
+double linear_x = 0.0;
+double angular_z = 0.0;
 
 class Robot
 {
@@ -97,7 +101,7 @@ public:
         }
 
         m_imuSub = n->subscribe(robot->m_name+"/imu/quaternion", 1000, &Imu::IMU_callback, this);
-
+        std::cout << "Initialized imu\n";
     }
 
     void IMU_callback(const sensor_msgs::Imu::ConstPtr &data)
@@ -112,8 +116,6 @@ public:
         double t1 {+2.0 * (q_y * q_z + q_x * q_w)};
 
         m_yaw = atan2(t1, t0);
-
-        std::cout << "yaw "<< m_yaw << '\n';
     }
 };
 
@@ -157,45 +159,26 @@ public:
 
     void navigate_to_point(Imu* imu)
     {
-        // static const double Kp {2};
-
-        // The robot's x and z axes are parallel to the ground
-        // double xComponent {setpoint->m_setpoint[0] - gps->m_currLocation[0]};
-        // double zComponent {setpoint->m_setpoint[2] - gps->m_currLocation[2]};
-
         double desiredYaw = steer;
 
-        double phiErrorUncorrected {desiredYaw - imu->m_yaw};
+        double phiErrorUncorrected {-steer};
         double phiError {atan2(sin(phiErrorUncorrected), cos(phiErrorUncorrected))};
 
-        // double distanceError {find_distance_between_points(gps->m_currLocation, setpoint->m_setpoint)};
-
-        // Unicycle angle and velocity
-
-
-        // double unicycleAngle = steer_callback;  //steer
-        // double unicycleVelocity {0.0};     //speed
-
-        // Differential drive velocities
-        double rightVelocity {(2.0*speed + phiError*lengthBtnWheels)/2.0*wheelRadius};
-        double leftVelocity  {(2.0*speed - phiError*lengthBtnWheels)/2.0*wheelRadius};
+        // // Differential drive velocities
+        double rightVelocity {((2.0*speed + phiError*lengthBtnWheels)/2.0*wheelRadius)*60/(2*3.14159)};
+        double leftVelocity  {((2.0*speed - phiError*lengthBtnWheels)/2.0*wheelRadius)*60/(2*3.14159)};
 
         set_velocity(rightVelocity, leftVelocity);
-
-        // static const double threshold {5.0};
-
-        // if (distanceError < threshold)
-        // {
-        //     setpoint->publish_setpoint(1);
-        // }
-        // else
-        // {
-        //     setpoint->publish_setpoint(0);
-        // }
     }
 
     void set_velocity(double rightVelocity, double leftVelocity)
     {
+        if (isnan(rightVelocity) || isnan(leftVelocity))
+        {
+            rightVelocity = 0.0;
+            leftVelocity = 0.0;
+        }
+
         // Limiting velocities
         if (rightVelocity > m_maxSpeed)
             rightVelocity = m_maxSpeed;
@@ -207,7 +190,7 @@ public:
         if (leftVelocity < -m_maxSpeed)
             leftVelocity = -m_maxSpeed;
 
-        // std::cout << rightVelocity << ' ' << leftVelocity << '\n';
+        std::cout << rightVelocity << ' ' << leftVelocity << "\n\n";
 
         m_rightWheelSrv.request.value = rightVelocity;
         m_leftWheelSrv.request.value = leftVelocity;
@@ -217,35 +200,30 @@ public:
             std::cout << "Failed to set velocity\n";
         }
     }
-
-    // double find_distance_between_points(double point1[3], double point2[3])
-    // {
-    //     // Finding the distance between 2 points on a 2D plane using 
-    //     // the formula d = √((x_2-x_1)² + (y_2-y_1)²). 
-    //     // Here since the robot's x and z axes are parallel to the
-    //     // ground we use those coordinates to calculate the distance.
-    //     return sqrt((pow((point1[0]-point2[0]), 2)+pow((point1[2]-point2[2]), 2)));
-    // }
 };
 
 
 void speed_callback(const std_msgs::Float64::ConstPtr& msg)
 {
     speed = msg->data;
-    // std::cout << speed << ' ';
 }
 
 void steer_callback(const std_msgs::Float64::ConstPtr& msg)
 {
     steer = msg->data;
-    // std::cout << speed << ' ';
+}
+
+void cmd_vel_callback(const geometry_msgs::Twist::ConstPtr& msg)
+{
+    linear_x = msg->linear.x;
+    angular_z = msg->angular.y;
 }
 
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "nav");
     ros::NodeHandle n;
-
+    
     Robot robot{&n};
 
     while (robot.m_gotRobotNameFlag == 0)
@@ -264,7 +242,7 @@ int main(int argc, char **argv)
     ros::Publisher ext_speed_pub = n.advertise<std_msgs::Float64>("/external_speed",1000);
 
     std_msgs::Float64 ext_speed;
-    ext_speed.data = 50.0;
+    ext_speed.data = 1000.0;
 
     // Prepping waypoint data to be published for waypoint tracking controller package 
     nav_msgs::Path way_pts;     // Need to hard code this for testing purpose
@@ -342,8 +320,6 @@ int main(int argc, char **argv)
 
         nav.navigate_to_point(&imu);
 
-        // std::cout << imu.q_x << ' ';
- 
         ros::spinOnce();
         loopRate.sleep();
     }
