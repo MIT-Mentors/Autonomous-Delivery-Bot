@@ -1,13 +1,13 @@
 # Autonomous-Delivery-Bot
-ROS and Raspberry Pi based autonomous delivery robot which can be used inside an controlled environment. Status - Alpha
+Simulated version of autonomous delivery robot project.
 
 ## Software requirements
 
 ### Operating system
-Tested on Ubuntu 18.04
+Tested on Ubuntu 18.04, Ubuntu 20.04
 
 ### Robotic Operating System
-Ros Melodic
+Ros Melodic, ROS Noetic
 
 ### Webots
 Webots is a free and open-source 3D robot simulator.<br />
