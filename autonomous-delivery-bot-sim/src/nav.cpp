@@ -1,31 +1,31 @@
+// ****************************************************************************************************************************************
+// Title            : nav.cpp
+// Description      : Publishes waypoints, absolute pose and external speed so that it can be used by the waypoint-tracking-controller to
+//                    generate an interpolated path and speed and steer commands. The script uses the steer and steer commands to navigate
+//                    bot along the generated path                    
+// Author           : Sowbhagya Lakshmi H T
+// Last revised on  : 20/05/2023
+// ****************************************************************************************************************************************
+
 #include <iostream>
-# include <vector>
+#include <vector>
 #include <cmath>
-#include <ros/time.h>
-#include "ros/ros.h"
-#include "std_msgs/Bool.h"
-#include "std_msgs/String.h"
-#include <webots_ros/set_float.h>
-#include <webots_ros/set_int.h>
+#include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
-#include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Twist.h>
+#include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
+#include <ros/time.h>
+#include <ros/ros.h>
 #include <sensor_msgs/Imu.h>
+#include <std_msgs/Bool.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Header.h>
-
-#include "nav_msgs/Path.h"
-#include "nav_msgs/Odometry.h"
-#include "geometry_msgs/PoseStamped.h"
-#include "geometry_msgs/Twist.h"
-#include "geometry_msgs/Point.h"
+#include <std_msgs/String.h>
 #include <visualization_msgs/Marker.h>
-
-double speed = 0.0;
-double steer = 0.0;
-
-double linear_x = 0.0;
-double angular_z = 0.0;
+#include <webots_ros/set_float.h>
+#include <webots_ros/set_int.h>
 
 class Robot
 {
@@ -126,6 +126,13 @@ public:
     const double wheelRadius {0.165};
     const double lengthBtnWheels {0.8};
 
+
+    double m_speed = 0.0;
+    double m_steer = 0.0;
+
+    double linear_x = 0.0;
+    double angular_z = 0.0;
+
     webots_ros::set_float m_leftWheelSrv;
     webots_ros::set_float m_rightWheelSrv;
 
@@ -159,14 +166,14 @@ public:
 
     void navigate_to_point(Imu* imu)
     {
-        double desiredYaw = steer;
+        double desiredYaw = m_steer;
 
-        double phiErrorUncorrected {-steer};
+        double phiErrorUncorrected {-m_steer};
         double phiError {atan2(sin(phiErrorUncorrected), cos(phiErrorUncorrected))};
 
         // // Differential drive velocities
-        double rightVelocity {((2.0*speed + phiError*lengthBtnWheels)/2.0*wheelRadius)*60/(2*3.14159)};
-        double leftVelocity  {((2.0*speed - phiError*lengthBtnWheels)/2.0*wheelRadius)*60/(2*3.14159)};
+        double rightVelocity {((2.0*m_speed + phiError*lengthBtnWheels)/2.0*wheelRadius)*60/(2*3.14159)};
+        double leftVelocity  {((2.0*m_speed - phiError*lengthBtnWheels)/2.0*wheelRadius)*60/(2*3.14159)};
 
         set_velocity(rightVelocity, leftVelocity);
     }
@@ -200,24 +207,23 @@ public:
             std::cout << "Failed to set velocity\n";
         }
     }
+
+    void speed_callback(const std_msgs::Float64::ConstPtr& msg)
+    {
+        m_speed = msg->data;
+    }
+
+    void steer_callback(const std_msgs::Float64::ConstPtr& msg)
+    {
+        m_steer = msg->data;
+    }
+
+    void cmd_vel_callback(const geometry_msgs::Twist::ConstPtr& msg)
+    {
+        linear_x = msg->linear.x;
+        angular_z = msg->angular.y;
+    }
 };
-
-
-void speed_callback(const std_msgs::Float64::ConstPtr& msg)
-{
-    speed = msg->data;
-}
-
-void steer_callback(const std_msgs::Float64::ConstPtr& msg)
-{
-    steer = msg->data;
-}
-
-void cmd_vel_callback(const geometry_msgs::Twist::ConstPtr& msg)
-{
-    linear_x = msg->linear.x;
-    angular_z = msg->angular.y;
-}
 
 int main(int argc, char **argv)
 {
